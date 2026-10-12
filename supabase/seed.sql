@@ -4,6 +4,7 @@
 -- LOCAL SEED ONLY. These logins exist only in the local Docker database:
 --   Household group "Maple Street"  code HHHH-2222  PIN 1234
 --   People group    "Ski Trip"      code PPPP-3333  PIN 1234
+--   Personal PINs are 1234 too (Alex and Casey are admins).
 --
 -- Data is created through the real RPCs (register_device, add_self, add_entry, ...)
 -- so shares, balances and the change log come from the same code the app uses.
@@ -41,10 +42,14 @@ begin
 
   v_tok_alex := public.register_device('HHHH-2222', '1234', 'Seed: Alex''s phone') ->> 'token';
   v_tok_sam := public.register_device('HHHH-2222', '1234', 'Seed: Sam''s phone') ->> 'token';
-  v_alex := public.add_self(v_tok_alex, 'Alex', v_h1);
-  v_sam := public.add_self(v_tok_sam, 'Sam', v_h2);
+  -- Alex joins first and becomes admin, then adds everyone else. Every seeded
+  -- personal PIN is 1234; Jordan and Riley have none yet, so picking them shows the
+  -- "create your PIN" step.
+  v_alex := public.add_self(v_tok_alex, 'Alex', v_h1, '1234');
+  v_sam := public.upsert_person(v_tok_alex, null, 'Sam', v_h2);
   v_jordan := public.upsert_person(v_tok_alex, null, 'Jordan', v_h1);
-  v_riley := public.upsert_person(v_tok_sam, null, 'Riley', v_h2);
+  v_riley := public.upsert_person(v_tok_alex, null, 'Riley', v_h2);
+  perform public.set_device_person(v_tok_sam, v_sam, '1234');
 
   perform public.upsert_recurring_bill(v_tok_alex, null, 'Rent', v_h1, 'third',
     p_default_total_cents => 240000, p_auto_add => true, p_day_of_month => 1);
@@ -87,7 +92,12 @@ begin
 
   foreach v_name in array array['Casey', 'Morgan', 'Taylor', 'Quinn'] loop
     v_tok_p := v_tok_p || (public.register_device('PPPP-3333', '1234', 'Seed: ' || v_name || '''s phone') ->> 'token');
-    perform public.add_self(v_tok_p[array_length(v_tok_p, 1)], v_name);
+    if v_name = 'Casey' then
+      perform public.add_self(v_tok_p[1], v_name, null, '1234');
+    else
+      perform public.set_device_person(v_tok_p[array_length(v_tok_p, 1)],
+                                       public.upsert_person(v_tok_p[1], null, v_name), '1234');
+    end if;
   end loop;
   select array_agg(pe.party_id order by pe.sort_order) into v_pp
   from public.people pe join private.group_secrets gs on gs.group_id = pe.group_id

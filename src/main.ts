@@ -1,12 +1,9 @@
 import './styles/main.css';
-import { APP_NAME } from './config';
+import { configureRpc, rpcConfigFromEnv } from './api/rpc';
+import { startApp } from './ui/app';
 
-const app = document.querySelector<HTMLElement>('#app');
-if (!app) throw new Error('Missing #app element');
+const root = document.querySelector<HTMLElement>('#app');
+if (!root) throw new Error('Missing #app element');
 
-app.innerHTML = `
-  <section class="card">
-    <h1>${APP_NAME}</h1>
-    <p class="muted">Shared bills, kept even. Coming soon.</p>
-  </section>
-`;
+configureRpc(rpcConfigFromEnv());
+startApp(root);

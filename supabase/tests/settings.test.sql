@@ -10,7 +10,7 @@ select is(
     where n.nspname in ('public', 'private') and has_function_privilege('anon', p.oid, 'execute')),
   array['add_entry', 'add_self', 'archive_person', 'archive_recurring_bill', 'delete_entry', 'edit_entry',
         'export_entries', 'get_entry', 'get_summary', 'list_devices', 'list_entries', 'list_recurring_bills',
-        'ping', 'register_device', 'restore_entry', 'revoke_device', 'set_device_person', 'update_group',
+        'ping', 'register_device', 'reset_person_pin', 'restore_entry', 'revoke_device', 'set_device_person', 'set_person_admin', 'update_group',
         'upsert_party', 'upsert_person', 'upsert_recurring_bill'],
   'anon can execute exactly the documented RPCs');
 select is(
@@ -30,18 +30,19 @@ insert into t select 'h1', id::text from public.parties where group_id = pg_temp
 insert into t select 'h2', id::text from public.parties where group_id = pg_temp.v('group_a')::uuid and sort_order = 2;
 insert into t values ('tok1', public.register_device(pg_temp.v('code_a'), '4821', 'Phone one') ->> 'token');
 insert into t values ('tok2', public.register_device(pg_temp.v('code_a'), '4821', 'Phone two') ->> 'token');
-insert into t values ('alex', public.add_self(pg_temp.v('tok1'), 'Alex', pg_temp.v('h1')::uuid)::text);
-insert into t values ('blair', public.add_self(pg_temp.v('tok2'), 'Blair', pg_temp.v('h2')::uuid)::text);
+insert into t values ('alex', public.add_self(pg_temp.v('tok1'), 'Alex', pg_temp.v('h1')::uuid, '1111')::text);
+insert into t values ('blair', public.upsert_person(pg_temp.v('tok1'), null, 'Blair', pg_temp.v('h2')::uuid)::text);
+select public.set_device_person(pg_temp.v('tok2'), pg_temp.v('blair')::uuid, '2222');
 
 insert into t values ('code_b', private.create_group('Other House', 'households', '7730'));
 insert into t select 'hb1', p.id::text from public.parties p join private.group_secrets gs on gs.group_id = p.group_id
   where gs.code = private.normalize_code(pg_temp.v('code_b')) and p.sort_order = 1;
 insert into t values ('tokb', public.register_device(pg_temp.v('code_b'), '7730') ->> 'token');
-select public.add_self(pg_temp.v('tokb'), 'Casey', pg_temp.v('hb1')::uuid);
+select public.add_self(pg_temp.v('tokb'), 'Casey', pg_temp.v('hb1')::uuid, '1111');
 
 insert into t values ('code_p', private.create_group('Trip', 'people', '5555'));
 insert into t values ('tokp', public.register_device(pg_temp.v('code_p'), '5555') ->> 'token');
-insert into t values ('dana', public.add_self(pg_temp.v('tokp'), 'Dana')::text);
+insert into t values ('dana', public.add_self(pg_temp.v('tokp'), 'Dana', null, '1111')::text);
 
 -- Recurring bills
 insert into t values ('rent', public.upsert_recurring_bill(pg_temp.v('tok1'), null, 'Rent', pg_temp.v('h1')::uuid, 'third',

@@ -23,24 +23,27 @@ insert into t select 'h2', id::text from public.parties where group_id = pg_temp
 insert into t values ('tok1', public.register_device(pg_temp.v('code_a'), '4821') ->> 'token');
 insert into t values ('tok2', public.register_device(pg_temp.v('code_a'), '4821') ->> 'token');
 insert into t values ('tok_none', public.register_device(pg_temp.v('code_a'), '4821') ->> 'token');
-insert into t values ('alex', public.add_self(pg_temp.v('tok1'), 'Alex', pg_temp.v('h1')::uuid)::text);
-insert into t values ('blair', public.add_self(pg_temp.v('tok2'), 'Blair', pg_temp.v('h2')::uuid)::text);
+insert into t values ('alex', public.add_self(pg_temp.v('tok1'), 'Alex', pg_temp.v('h1')::uuid, '1111')::text);
+insert into t values ('blair', public.upsert_person(pg_temp.v('tok1'), null, 'Blair', pg_temp.v('h2')::uuid)::text);
+select public.set_device_person(pg_temp.v('tok2'), pg_temp.v('blair')::uuid, '2222');
 
 insert into t values ('code_b', private.create_group('Other House', 'households', '7730'));
 insert into t select 'hb1', id::text from public.parties p join private.group_secrets gs on gs.group_id = p.group_id
   where gs.code = private.normalize_code(pg_temp.v('code_b')) and p.sort_order = 1;
 insert into t values ('tokb', public.register_device(pg_temp.v('code_b'), '7730') ->> 'token');
-select public.add_self(pg_temp.v('tokb'), 'Casey', pg_temp.v('hb1')::uuid);
+select public.add_self(pg_temp.v('tokb'), 'Casey', pg_temp.v('hb1')::uuid, '1111');
 
 insert into t values ('code_p', private.create_group('Trip', 'people', '5555'));
 insert into t values ('tokp1', public.register_device(pg_temp.v('code_p'), '5555') ->> 'token');
 insert into t values ('tokp2', public.register_device(pg_temp.v('code_p'), '5555') ->> 'token');
 insert into t values ('tokp3', public.register_device(pg_temp.v('code_p'), '5555') ->> 'token');
-insert into t values ('pa_person', public.add_self(pg_temp.v('tokp1'), 'Dana')::text);
+insert into t values ('pa_person', public.add_self(pg_temp.v('tokp1'), 'Dana', null, '1111')::text);
 insert into t select 'pa', party_id::text from public.people where id = pg_temp.v('pa_person')::uuid;
-insert into t values ('pb_person', public.add_self(pg_temp.v('tokp2'), 'Eli')::text);
+insert into t values ('pb_person', public.upsert_person(pg_temp.v('tokp1'), null, 'Eli')::text);
+select public.set_device_person(pg_temp.v('tokp2'), pg_temp.v('pb_person')::uuid, '2222');
 insert into t select 'pb', party_id::text from public.people where id = pg_temp.v('pb_person')::uuid;
-insert into t values ('pc_person', public.add_self(pg_temp.v('tokp3'), 'Finn')::text);
+insert into t values ('pc_person', public.upsert_person(pg_temp.v('tokp1'), null, 'Finn')::text);
+select public.set_device_person(pg_temp.v('tokp3'), pg_temp.v('pc_person')::uuid, '2222');
 insert into t select 'pc', party_id::text from public.people where id = pg_temp.v('pc_person')::uuid;
 
 -- Adding expenses and payments

@@ -29,6 +29,8 @@ export interface Person {
   party_id: string;
   sort_order: number;
   archived: boolean;
+  is_admin: boolean;
+  has_pin: boolean;
 }
 
 export interface PartyNet {

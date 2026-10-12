@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../src/api/errors';
-import { addEntry, configureRpc, getSummary, registerDevice, rpc } from '../src/api/rpc';
+import {
+  addEntry,
+  configureRpc,
+  getSummary,
+  registerDevice,
+  rpc,
+  setDevicePerson,
+} from '../src/api/rpc';
 
 const store = new Map<string, string>();
 const fetchMock = vi.fn<typeof fetch>();
@@ -122,6 +129,20 @@ describe('rpc', () => {
       'input',
       'The percentage must be above 0% and at most 100%.',
     ]);
+  });
+
+  it('turns a wrong personal PIN into invalid_pin', async () => {
+    store.set('evenly.device-token', 'abc');
+    reply(200, { error: 'invalid_pin' });
+    const error = await caught(setDevicePerson('p1', '0000'));
+    expect([error.code, error.message]).toEqual(['invalid_pin', "That PIN isn't right."]);
+  });
+
+  it('maps admin-only refusals to an input error with a friendly message', async () => {
+    store.set('evenly.device-token', 'abc');
+    reply(403, { code: '42501', message: 'admin_only', details: 'Only an admin can do this' });
+    const error = await caught(getSummary());
+    expect([error.kind, error.message]).toEqual(['input', 'Only an admin can do this.']);
   });
 
   it('maps a failed fetch to a network error', async () => {

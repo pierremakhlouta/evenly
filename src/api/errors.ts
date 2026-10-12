@@ -13,6 +13,12 @@ const MESSAGES: Record<string, string> = {
   locked_out: 'Too many wrong tries. Wait 15 minutes and try again.',
   invalid_device: 'This phone was signed out. Join the group again.',
   no_person: 'Pick who you are first.',
+  invalid_pin: "That PIN isn't right.",
+  invalid_pin_format: 'PINs are 4 to 12 digits.',
+  join_closed: 'Ask an admin to add you to the group.',
+  admin_only: 'Only an admin can do this.',
+  last_admin: 'The group needs at least one admin. Make someone else admin first.',
+  cannot_archive_self: "You can't remove yourself. Ask another admin.",
   invalid_name: 'Names need 1 to 80 characters.',
   invalid_description: 'Add a short description.',
   invalid_total: 'Enter an amount between $0.01 and $1,000,000.',
@@ -51,6 +57,8 @@ export function fromPostgrest(body: PostgrestError): ApiError {
   const detail = body.details ?? undefined;
   if (code === 'locked_out') return new ApiError(code, 'locked', detail);
   if (body.code === '28000') return new ApiError(code, 'device', detail);
-  if (body.code === '22023' || body.code === '23514') return new ApiError(code, 'input', detail);
+  if (body.code === '22023' || body.code === '23514' || body.code === '42501') {
+    return new ApiError(code, 'input', detail);
+  }
   return new ApiError(code, 'unknown', detail ?? body.message);
 }

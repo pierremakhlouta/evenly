@@ -116,11 +116,21 @@ export async function registerDevice(
   return result.token;
 }
 
-export const setDevicePerson = (personId: string) =>
-  withToken<null>('set_device_person', { p_person_id: personId });
+/**
+ * Picks this phone's person. If they have a PIN it must match; if not, it becomes
+ * their new PIN. Throws invalid_pin for a wrong PIN.
+ */
+export async function setDevicePerson(personId: string, pin: string): Promise<void> {
+  const result = await withToken<{ ok?: boolean; error?: string }>('set_device_person', {
+    p_person_id: personId,
+    p_pin: pin,
+  });
+  if (!result.ok) throw new ApiError(result.error ?? 'invalid_pin', 'input');
+}
 
-export const addSelf = (name: string, partyId: string | null) =>
-  withToken<string>('add_self', { p_name: name, p_party_id: partyId ?? undefined });
+/** Only for the first person of an empty group, who becomes admin. */
+export const addSelf = (name: string, partyId: string | null, pin: string) =>
+  withToken<string>('add_self', { p_name: name, p_party_id: partyId, p_pin: pin });
 
 // ---------------------------------------------------------------------------
 // Entries
@@ -160,5 +170,9 @@ export const listDevices = () => withToken<Device[]>('list_devices');
 export const revokeDevice = (id: string) => withToken<null>('revoke_device', { p_id: id });
 
 export const updateGroup = (name: string) => withToken<null>('update_group', { p_name: name });
+
+/** Admin only. Creates (id null) or updates a person. */
+export const upsertPerson = (id: string | null, name: string, partyId: string | null) =>
+  withToken<string>('upsert_person', { p_id: id, p_name: name, p_party_id: partyId });
 
 export const exportEntries = () => withToken<Entry[]>('export_entries');

@@ -58,32 +58,32 @@ insert into t values ('hh_a1', (select id::text from public.parties where group_
 insert into t values ('hh_b1', (select id::text from public.parties where group_id = (select val from t where key = 'group_b')::uuid and sort_order = 1));
 set local role anon;
 select throws_ok(
-  format('select public.add_self(%L, %L, %L)', (select val from t where key = 'tok_a'), 'Alex',
-         (select val from t where key = 'hh_b1')),
+  format('select public.add_self(%L, %L, %L, %L)', (select val from t where key = 'tok_a'), 'Alex',
+         (select val from t where key = 'hh_b1'), '1111'),
   '22023', 'invalid_party', 'cannot join a household in another group');
-select throws_ok(format('select public.add_self(%L, %L, null)', (select val from t where key = 'tok_a'), 'Alex'),
+select throws_ok(format('select public.add_self(%L, %L, null, %L)', (select val from t where key = 'tok_a'), 'Alex', '1111'),
   '22023', 'invalid_party', 'household mode needs a household');
 select throws_ok(
-  format('select public.add_self(%L, %L, %L)', (select val from t where key = 'tok_a'), '   ',
-         (select val from t where key = 'hh_a1')),
+  format('select public.add_self(%L, %L, %L, %L)', (select val from t where key = 'tok_a'), '   ',
+         (select val from t where key = 'hh_a1'), '1111'),
   '22023', 'invalid_name', 'blank name is rejected');
 reset role;
 insert into t values ('alex', public.add_self((select val from t where key = 'tok_a'), ' Alex ',
-  (select id from public.parties where group_id = (select val from t where key = 'group_a')::uuid and sort_order = 1))::text);
+  (select id from public.parties where group_id = (select val from t where key = 'group_a')::uuid and sort_order = 1), '1111')::text);
 select is((select name from public.people where id = (select val from t where key = 'alex')::uuid), 'Alex', 'add_self creates the person');
 select is((select person_id::text from private.require_person((select val from t where key = 'tok_a'))), (select val from t where key = 'alex'),
   'add_self sets the device person');
 
-insert into t values ('sam', public.add_self((select val from t where key = 'tok_p'), 'Sam')::text);
+insert into t values ('sam', public.add_self((select val from t where key = 'tok_p'), 'Sam', null, '1111')::text);
 select is((select pa.kind from public.people pe join public.parties pa on pa.id = pe.party_id where pe.id = (select val from t where key = 'sam')::uuid),
   'person', 'in people mode add_self creates a person party');
 
 set local role anon;
-select throws_ok(format('select public.set_device_person(%L, %L)', (select val from t where key = 'tok_b'), (select val from t where key = 'alex')),
+select throws_ok(format('select public.set_device_person(%L, %L, %L)', (select val from t where key = 'tok_b'), (select val from t where key = 'alex'), '1111'),
   '22023', 'invalid_person', 'cannot pick a person from another group');
 reset role;
 update public.people set archived_at = now() where id = (select val from t where key = 'alex')::uuid;
-select throws_ok(format('select public.set_device_person(%L, %L)', (select val from t where key = 'tok_a'), (select val from t where key = 'alex')),
+select throws_ok(format('select public.set_device_person(%L, %L, %L)', (select val from t where key = 'tok_a'), (select val from t where key = 'alex'), '1111'),
   '22023', 'invalid_person', 'cannot pick an archived person');
 select throws_ok(format('select * from private.require_person(%L)', (select val from t where key = 'tok_a')), '22023', 'no_person',
   'a device whose person was archived must pick again');
