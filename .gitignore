@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Environment files (never commit real values)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# OS and editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
