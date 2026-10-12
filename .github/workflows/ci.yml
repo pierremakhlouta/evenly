@@ -23,3 +23,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  database:
+    name: Database tests (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.120.0
+      # Starts only Postgres, applies every migration and the fake seed.
+      - run: supabase db start
+      - run: supabase test db
