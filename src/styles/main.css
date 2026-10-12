@@ -193,15 +193,14 @@ p {
   width: 100%;
   padding: 12px 16px;
   border: 0;
-  border-top: 1px solid var(--border);
   background: none;
   color: inherit;
   font: inherit;
   text-align: left;
 }
 
-.list-item:first-child {
-  border-top: 0;
+.list > * + * {
+  border-top: 1px solid var(--border);
 }
 
 button.list-item {

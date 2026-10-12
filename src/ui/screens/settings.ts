@@ -1,4 +1,4 @@
-import { upsertPerson } from '../../api/rpc';
+import { renameParty, updateGroup, upsertPerson } from '../../api/rpc';
 import type { Person } from '../../api/types';
 import { APP_NAME, APP_VERSION } from '../../config';
 import type { AppContext } from '../app';
@@ -7,8 +7,9 @@ import { h, replace } from '../dom';
 import { messageOf } from '../errors';
 
 /**
- * Settings. For now: this phone, and the people list where admins can add people.
- * The rest (renaming, archiving, admins, bills, devices, export) comes in Phase 6.
+ * Settings. For now: this phone, group and household names, and the people list
+ * where admins can add people. The rest (archiving, admins, bills, devices,
+ * export) comes in Phase 6.
  */
 export function settingsScreen(ctx: AppContext): HTMLElement {
   const { view } = ctx;
@@ -46,6 +47,96 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
             view.summary.people.filter((p) => !p.archived).map(personRow),
           ),
         ];
+
+  /** A row showing a name; admins can tap it to rename in place. */
+  const nameRow = (label: string, value: string, save: (name: string) => Promise<unknown>) => {
+    const slot = h('div', {});
+    const showRow = () => {
+      replace(
+        slot,
+        isAdmin
+          ? h(
+              'button',
+              { type: 'button', class: 'list-item chevron', onclick: showForm },
+              h('span', {}, label),
+              h('span', { class: 'muted' }, value),
+            )
+          : h(
+              'div',
+              { class: 'list-item' },
+              h('span', {}, label),
+              h('span', { class: 'muted' }, value),
+            ),
+      );
+    };
+    const showForm = () => {
+      const error = errorLine();
+      const input = h('input', {
+        class: 'input',
+        name: 'name',
+        autocomplete: 'off',
+        maxlength: 80,
+        value,
+      });
+      const submit = h('button', { class: 'btn btn-primary btn-block', type: 'submit' }, 'Save');
+      replace(
+        slot,
+        h(
+          'form',
+          {
+            class: 'stack',
+            style: 'padding: 16px',
+            novalidate: true,
+            onsubmit: (event) => {
+              event.preventDefault();
+              error.clear();
+              if (!input.value.trim()) {
+                error.show('Enter a name.');
+                return;
+              }
+              void busy(submit, 'Saving…', async () => {
+                try {
+                  await save(input.value.trim());
+                  await ctx.refresh();
+                } catch (e) {
+                  error.show(messageOf(e));
+                }
+              });
+            },
+          },
+          field(label, input),
+          error.el,
+          submit,
+          h('button', { type: 'button', class: 'btn btn-ghost', onclick: showRow }, 'Cancel'),
+        ),
+      );
+      input.focus();
+      input.select();
+    };
+    showRow();
+    return slot;
+  };
+
+  const groupSection = h(
+    'section',
+    { class: 'stack' },
+    h('h2', { class: 'section-title' }, 'Group'),
+    h(
+      'div',
+      { class: 'list' },
+      nameRow('Group name', view.summary.group.name, updateGroup),
+      view.mode === 'households'
+        ? view.activeParties.map((party, i) =>
+            nameRow(`Household ${String(i + 1)}`, party.name, (name) =>
+              renameParty(party.id, name),
+            ),
+          )
+        : null,
+    ),
+    isAdmin
+      ? null
+      : h('p', { class: 'muted' }, 'Only an admin can rename the group or households.'),
+  );
 
   const addArea = h('div', { class: 'stack' });
 
@@ -162,6 +253,7 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
         ),
       ),
     ),
+    groupSection,
     h(
       'section',
       { class: 'stack' },

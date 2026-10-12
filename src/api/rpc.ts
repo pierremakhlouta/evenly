@@ -171,6 +171,10 @@ export const revokeDevice = (id: string) => withToken<null>('revoke_device', { p
 
 export const updateGroup = (name: string) => withToken<null>('update_group', { p_name: name });
 
+/** Admin only. Renames a household (or a people-mode party). */
+export const renameParty = (id: string, name: string) =>
+  withToken<null>('upsert_party', { p_id: id, p_name: name });
+
 /** Admin only. Creates (id null) or updates a person. */
 export const upsertPerson = (id: string | null, name: string, partyId: string | null) =>
   withToken<string>('upsert_person', { p_id: id, p_name: name, p_party_id: partyId });
