@@ -1,6 +1,6 @@
 /**
- * Generates supabase/tests/split_vectors.test.sql from shared/test-vectors.json,
- * so pgTAP checks the SQL split functions against exactly the same cases as Vitest.
+ * Generates supabase/tests/shared_vectors.test.sql from shared/test-vectors.json,
+ * so pgTAP checks the SQL split and balance functions against exactly the same cases as Vitest.
  *
  * pgTAP runs inside the database container and cannot read files outside
  * supabase/tests, so the vectors are embedded in the generated file.
@@ -10,13 +10,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const VECTORS_PATH = 'shared/test-vectors.json';
-export const SQL_TESTS_PATH = 'supabase/tests/split_vectors.test.sql';
+export const SQL_TESTS_PATH = 'supabase/tests/shared_vectors.test.sql';
 
 interface Vectors {
   household: unknown[];
   household_invalid: unknown[];
   people: unknown[];
   people_invalid: unknown[];
+  balance: unknown[];
 }
 
 /** Static checks after the vectors: shares add up for every total from 1 cent to $20. */
@@ -29,6 +30,7 @@ export function renderSqlVectorTests(json: string): string {
     vectors.household_invalid.length +
     vectors.people.length +
     vectors.people_invalid.length +
+    vectors.balance.length +
     INVARIANT_TESTS;
   const compact = JSON.stringify(vectors);
   if (compact.includes('$vectors$')) throw new Error('Vectors cannot contain $vectors$');
@@ -73,6 +75,41 @@ select throws_ok(
          t ->> 'total_cents', t ->> 'split_type', t -> 'parties'),
   '22023', t ->> 'error', 'people rejects: ' || (t ->> 'name'))
 from vectors, jsonb_array_elements(v -> 'people_invalid') with ordinality as x(t, n)
+order by n;
+
+-- Balances: each vector becomes its own group, built directly in the tables, and
+-- private.party_nets must give the expected net for every party.
+create temp table balance_vectors on commit drop as
+  select t, n, md5('balance-vector-' || n)::uuid as g
+  from vectors, jsonb_array_elements(v -> 'balance') with ordinality as x(t, n);
+
+insert into public.groups (id, name, mode)
+select g, 'vector ' || n, 'people' from balance_vectors;
+
+insert into public.parties (group_id, name, kind, sort_order)
+select g, p.name, 'person', p.ord
+from balance_vectors, jsonb_array_elements_text(t -> 'parties') with ordinality as p(name, ord);
+
+insert into public.entries (group_id, kind, description, total_cents, paid_by_party_id, split_type)
+select g, e ->> 'kind', 'entry ' || en, (e ->> 'total_cents')::integer,
+       (select id from public.parties where group_id = g and name = e ->> 'paid_by'),
+       case when e ->> 'kind' = 'expense' then 'amounts' end
+from balance_vectors, jsonb_array_elements(t -> 'entries') with ordinality as x(e, en);
+
+insert into public.entry_shares (group_id, entry_id, party_id, share_cents)
+select g,
+       (select id from public.entries where group_id = g and description = 'entry ' || en),
+       (select id from public.parties where group_id = g and name = sh.key),
+       sh.value::integer
+from balance_vectors, jsonb_array_elements(t -> 'entries') with ordinality as x(e, en),
+     jsonb_each_text(e -> 'shares') as sh;
+
+select is(
+  (select jsonb_object_agg(p.name, n.net_cents)
+     from private.party_nets(g) n join public.parties p on p.id = n.party_id),
+  t -> 'expected',
+  'balance: ' || (t ->> 'name'))
+from balance_vectors
 order by n;
 
 -- Invariants: shares always add up to the total and are never negative.
