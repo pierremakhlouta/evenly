@@ -4,7 +4,7 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 [![CI](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml/badge.svg)](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml)
 
-> Work in progress. The money logic and the deploy pipeline are done; the database comes next.
+> Work in progress. The money logic, the deploy pipeline and the database are done; the screens come next.
 > Live (placeholder for now): https://pierremakhlouta.github.io/evenly/
 
 ## Two modes, one engine
@@ -30,7 +30,32 @@ Both modes use the same engine: money always moves between _parties_, and househ
 - People-mode splits (equal, amounts, percent, weights) use largest-remainder allocation with ties broken by sort order.
 - Debts between N people settle in at most N - 1 payments.
 
-The same cases in [`shared/test-vectors.json`](shared/test-vectors.json) test the TypeScript code now and the SQL functions later, so both must agree to the cent.
+The same cases in [`shared/test-vectors.json`](shared/test-vectors.json) test both the TypeScript code (Vitest) and the SQL functions (pgTAP), so they must agree to the cent. The database is the source of truth: it computes and stores the shares, and the TypeScript copy only powers the live preview in forms.
+
+## Security model
+
+There are no user accounts. Each group has a shared PIN, entered once per phone.
+
+```
+Phone                         Supabase (Postgres)
+-----                         -------------------
+register_device(code, PIN) -> bcrypt check, lockout after 10 failures in 15 min
+                           <- random 32-byte token (only its sha256 is stored)
+get_summary(token)         -> require_device(token) -> caller's group only
+add_entry(token, ...)      -> validate, compute shares, log the change
+```
+
+- The browser only has the project URL and the publishable key. Every table has row level security on with **no policies**, and all table privileges are revoked from the API roles, so the key can read nothing directly.
+- The only way in is a fixed list of `security definer` RPC functions with an empty `search_path`. A test fails CI if anything else becomes callable.
+- Every RPC resolves the caller's group from the device token, and composite `(group_id, id)` foreign keys make cross-group references impossible at the database level.
+- Secrets (PIN hashes, device token hashes, PIN attempts) live in a `private` schema that the API cannot reach.
+- Deletes are soft and every create, edit, delete and restore is written to an append-only change log.
+
+## Database
+
+- Schema changes are SQL migrations in [`supabase/migrations`](supabase/migrations), applied with the Supabase CLI.
+- pgTAP tests in [`supabase/tests`](supabase/tests) cover the lockdown, group isolation, PIN lockout, revoked devices, split and balance math against the shared vectors, and every RPC.
+- [`supabase/seed.sql`](supabase/seed.sql) creates two fake groups (household mode and people mode) for local development and screenshots.
 
 ## Run it locally
 
@@ -43,8 +68,18 @@ npm run dev -- --host  # also reachable from a phone on the same network
 npm run check        # typecheck, lint, format check, tests, build
 ```
 
+The database runs locally with the Supabase CLI and Docker:
+
+```sh
+supabase start       # local Postgres and API
+supabase db reset    # apply migrations and the fake seed
+supabase test db     # pgTAP tests
+```
+
+The seed's local-only logins are `HHHH-2222` (household mode) and `PPPP-3333` (people mode), both with PIN `1234`.
+
 ## Deploys
 
-Every push and pull request runs CI (typecheck, lint, format check, unit tests, build). When CI passes on `main`, a second workflow builds that exact commit and deploys it to GitHub Pages. A failing check never reaches the live site.
+Every push and pull request runs CI: typecheck, lint, format check, unit tests and build in one job, and the pgTAP database tests against a fresh Postgres in another. When CI passes on `main`, a second workflow builds that exact commit and deploys it to GitHub Pages. A failing check never reaches the live site.
 
 See [DECISIONS.md](DECISIONS.md) for the reasoning behind the design.
