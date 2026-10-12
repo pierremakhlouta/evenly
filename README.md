@@ -4,8 +4,8 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 [![CI](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml/badge.svg)](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml)
 
-> Work in progress. The money logic, the deploy pipeline and the database are done; the screens come next.
-> Live (placeholder for now): https://pierremakhlouta.github.io/evenly/
+> In use by its first two households. Editing, monthly bills and the home-screen app are next.
+> Live: https://pierremakhlouta.github.io/evenly/ (a group code and PIN are needed to join)
 
 ## Two modes, one engine
 
@@ -14,10 +14,19 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 Both modes use the same engine: money always moves between _parties_, and household mode is simply the two-party case.
 
+## What it does
+
+- **Join once per phone** with a group code and PIN, then pick your name and enter your personal PIN, so nobody can add entries as someone else. The first person in a group is its admin and adds everyone else.
+- **Home** shows one balance phrased from your side ("Basement suite owes you $214.50") and everything added since the last settle-up, each entry saying what it did to your balance.
+- **Add expense**: who paid, and the other side's share (1/3, 1/2, all, a $ amount, a fraction or a percentage), with a live "They owe you $35.00" preview.
+- **Record payment**: partial payments, or **Settle full balance**, which zeroes the balance and starts a new period.
+- **History**: settle-up periods, newest first, each one opening to its entries.
+- Phones stay in sync by refreshing on focus, every 30 seconds and after every change. There's an offline banner, and light and dark themes follow the phone.
+
 ## Tech stack
 
-- TypeScript + Vite, no UI framework
-- Supabase (Postgres) with all access through RPC functions
+- TypeScript + Vite, no UI framework (the whole app is about 10 KB gzipped)
+- Supabase (Postgres) with all access through RPC functions, called with a small typed `fetch` client
 - GitHub Pages, deployed by GitHub Actions
 - Vitest for the money math, pgTAP for the database
 

@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { Summary } from '../src/api/types';
 import { currentTab } from '../src/ui/app';
 import { h } from '../src/ui/dom';
+import { today } from '../src/dates';
+import { dateRange } from '../src/ui/screens/history';
 import { GroupView } from '../src/ui/state';
+
+const thisYear = today().slice(0, 4);
 
 describe('h()', () => {
   it('treats user text as text, never as HTML', () => {
@@ -40,6 +44,8 @@ describe('currentTab', () => {
     ['#/home', 'home'],
     ['#/history', 'history'],
     ['#/settings', 'settings'],
+    ['#/history/open', 'history'],
+    ['#/history/2026-09-30T20%3A00%3A00%2B00%3A00', 'history'],
     ['#/nonsense', 'home'],
   ])('%j opens %s', (hash, tab) => {
     expect(currentTab(hash)).toBe(tab);
@@ -104,5 +110,26 @@ describe('GroupView', () => {
     expect(new GroupView({ ...summary, me: { ...summary.me, person_id: null } }).hasPerson).toBe(
       false,
     );
+  });
+});
+
+describe('dateRange', () => {
+  const period = (first: string | null, last: string | null) => ({
+    created_after: null,
+    entry_count: 0,
+    first_date: first,
+    last_date: last,
+  });
+
+  it('shows the first and last entry dates', () => {
+    expect(dateRange(period(`${thisYear}-09-01`, `${thisYear}-09-30`))).toBe('Sep 1 to Sep 30');
+  });
+
+  it('shows one date when they are the same', () => {
+    expect(dateRange(period(`${thisYear}-09-30`, `${thisYear}-09-30`))).toBe('Sep 30');
+  });
+
+  it('is empty for an empty period', () => {
+    expect(dateRange(period(null, null))).toBe('');
   });
 });

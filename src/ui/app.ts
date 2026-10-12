@@ -55,7 +55,7 @@ const TABS: { tab: Tab; label: string; icon: IconName }[] = [
 ];
 
 export function currentTab(hash: string): Tab {
-  const name = hash.replace(/^#\/?/, '');
+  const name = hash.replace(/^#\/?/, '').split('/')[0];
   return name === 'history' || name === 'settings' ? name : 'home';
 }
 
@@ -159,7 +159,7 @@ export function startApp(root: HTMLElement): void {
     const ctx = context(data);
     const screen =
       tab === 'history'
-        ? historyScreen()
+        ? historyScreen(ctx)
         : tab === 'settings'
           ? settingsScreen(ctx)
           : homeScreen(ctx);
