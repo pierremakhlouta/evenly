@@ -63,7 +63,9 @@ begin
   perform public.add_entry(v_tok_alex, 'expense', 'Rent', (v_month - interval '2 months')::date, 240000, v_h1, v_alex, 'third');
   perform public.add_entry(v_tok_alex, 'expense', 'Hydro', (v_month - interval '2 months' + interval '11 days')::date, 13412, v_h1, v_alex, 'third');
   perform public.add_entry(v_tok_alex, 'expense', 'Wifi', (v_month - interval '2 months' + interval '14 days')::date, 8500, v_h1, v_jordan, 'half');
-  perform public.add_entry(v_tok_sam, 'payment', 'E-transfer', (v_month - interval '2 months' + interval '20 days')::date, 90000, v_h2, v_sam);
+  -- End of that month: the basement suite settles the full balance.
+  perform public.settle_up(v_tok_sam, (select -n.net_cents from private.party_nets(v_group) n where n.party_id = v_h2)::integer,
+    (v_month - interval '1 month' - interval '1 day')::date, 'E-transfer', v_sam);
 
   -- Last month
   perform public.add_entry(v_tok_alex, 'expense', 'Rent', (v_month - interval '1 month')::date, 240000, v_h1, v_alex, 'third');
@@ -71,7 +73,8 @@ begin
   perform public.add_entry(v_tok_alex, 'expense', 'Water', (v_month - interval '1 month' + interval '12 days')::date, 5250, v_h1, v_alex, 'third');
   perform public.add_entry(v_tok_sam, 'expense', 'Pizza night', (v_month - interval '1 month' + interval '17 days')::date, 6240, v_h2, v_riley, 'half');
   perform public.add_entry(v_tok_alex, 'expense', 'Dinner out', (v_month - interval '1 month' + interval '23 days')::date, 9000, v_h1, v_alex, 'amount', 3500);
-  perform public.add_entry(v_tok_sam, 'payment', 'E-transfer', (v_month - interval '1 month' + interval '25 days')::date, 85000, v_h2, v_sam);
+  perform public.settle_up(v_tok_sam, (select -n.net_cents from private.party_nets(v_group) n where n.party_id = v_h2)::integer,
+    (v_month - interval '1 day')::date, 'E-transfer', v_sam);
 
   -- This month
   perform public.add_entry(v_tok_alex, 'expense', 'Rent', v_month, 240000, v_h1, v_alex, 'third');
@@ -83,6 +86,15 @@ begin
   perform public.edit_entry(v_tok_sam, (v_entry ->> 'id')::uuid, 'Hydro', v_month + 4, 12644, v_h1, v_alex, 'third');
   v_entry := public.add_entry(v_tok_sam, 'expense', 'Duplicate pizza', v_month + 5, 6240, v_h2, v_riley, 'half');
   perform public.delete_entry(v_tok_sam, (v_entry ->> 'id')::uuid);
+
+  -- Everything above ran in one transaction, so every row has the same created_at.
+  -- Spread creation times out to match the entry dates, so settle-up periods look
+  -- the way they would after months of real use (settle-ups in the evening).
+  update public.entries e
+  set created_at = (e.entry_date + case when e.settles then time '20:00' else time '12:00' end)
+                   at time zone 'America/Toronto',
+      updated_at = (e.entry_date + time '12:00') at time zone 'America/Toronto'
+  where e.group_id = v_group;
 
   -- -------------------------------------------------------------------------
   -- People mode: Ski Trip (four people, each their own party)

@@ -93,6 +93,7 @@ describe('Add expense sheet', () => {
       },
     ],
     nets: [],
+    last_settled_at: null,
     me: { device_id: 'd', person_id: 'p1', party_id: 'h1' },
   };
   let root: HTMLElement;

@@ -12,6 +12,7 @@ import type {
   EntryPage,
   EntryKind,
   EntryWithEvents,
+  Periods,
   RecurringBill,
   Summary,
 } from './types';
@@ -139,12 +140,40 @@ export const addSelf = (name: string, partyId: string | null, pin: string) =>
 export const getSummary = () => withToken<Summary>('get_summary');
 
 export const listEntries = (
-  opts: { deleted?: boolean; limit?: number; before?: string | null } = {},
+  opts: {
+    deleted?: boolean;
+    limit?: number;
+    before?: string | null;
+    /** Period bounds on creation time: after is exclusive, until is inclusive. */
+    createdAfter?: string | null;
+    createdUntil?: string | null;
+  } = {},
 ) =>
   withToken<EntryPage>('list_entries', {
     p_deleted: opts.deleted,
     p_limit: opts.limit,
     p_before: opts.before ?? undefined,
+    p_created_after: opts.createdAfter ?? undefined,
+    p_created_until: opts.createdUntil ?? undefined,
+  });
+
+export const listPeriods = () => withToken<Periods>('list_periods');
+
+/**
+ * Household mode: the household that owes pays the full balance, which ends the
+ * period. expectedCents is the amount shown; a changed balance fails with balance_changed.
+ */
+export const settleUp = (input: {
+  expectedCents: number;
+  entryDate: string;
+  note?: string;
+  paidByPersonId?: string | null;
+}) =>
+  withToken<Entry>('settle_up', {
+    p_expected_cents: input.expectedCents,
+    p_entry_date: input.entryDate,
+    p_note: input.note || undefined,
+    p_paid_by_person_id: input.paidByPersonId ?? undefined,
   });
 
 export const getEntry = (id: string) => withToken<EntryWithEvents>('get_entry', { p_id: id });

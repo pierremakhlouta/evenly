@@ -1,5 +1,5 @@
 import type { Entry } from '../../api/types';
-import { formatDay } from '../../dates';
+import { formatDay, today } from '../../dates';
 import { householdBalance, netChange } from '../../money/balance';
 import { formatCents } from '../../money/format';
 import type { AppContext } from '../app';
@@ -8,6 +8,7 @@ import { messageOf } from '../errors';
 import { icon } from '../icons';
 import type { GroupView } from '../state';
 import { openExpenseSheet } from './expense';
+import { openPaymentSheet } from './payment';
 
 /** The balance card, phrased from this phone's household. */
 function balanceCard(view: GroupView): HTMLElement {
@@ -103,6 +104,8 @@ export function entryRow(view: GroupView, entry: Entry): HTMLElement {
 
 export function homeScreen(ctx: AppContext): HTMLElement {
   const { view, recent } = ctx;
+  const lastSettled = view.summary.last_settled_at;
+  const settledOn = lastSettled ? formatDay(today(new Date(lastSettled))) : null;
 
   const refreshButton = h(
     'button',
@@ -142,22 +145,42 @@ export function homeScreen(ctx: AppContext): HTMLElement {
             },
             'Add expense',
           ),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn btn-secondary btn-block',
+              'data-write': true,
+              onclick: () => {
+                openPaymentSheet(ctx, ctx.root);
+              },
+            },
+            'Record payment',
+          ),
         )
       : null,
     h(
       'section',
       { class: 'stack' },
-      h('h2', { class: 'section-title' }, 'Recent'),
+      h(
+        'h2',
+        { class: 'section-title' },
+        settledOn ? `Since you settled up on ${settledOn}` : 'Recent',
+      ),
       recent.length
         ? h(
             'div',
             { class: 'list' },
             recent.map((e) => entryRow(view, e)),
           )
-        : h('p', { class: 'empty' }, 'No entries yet. Add your first bill.'),
-      recent.length
-        ? h('a', { class: 'btn btn-ghost', href: '#/history' }, 'See all history')
-        : null,
+        : h(
+            'p',
+            { class: 'empty' },
+            settledOn
+              ? 'Nothing new since you settled up.'
+              : 'No entries yet. Add your first bill.',
+          ),
+      h('a', { class: 'btn btn-ghost', href: '#/history' }, 'See all history'),
     ),
   );
 }

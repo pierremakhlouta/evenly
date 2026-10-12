@@ -25,14 +25,15 @@ import { GroupView } from './state';
 export type Tab = 'home' | 'history' | 'settings';
 
 const POLL_MS = 30_000;
-const RECENT_COUNT = 10;
+/** Home shows the open period; more than this many entries are in History. */
+const RECENT_COUNT = 50;
 
 /** What every tab screen gets. */
 export interface AppContext {
   /** The app root, where sheets are mounted. */
   root: HTMLElement;
   view: GroupView;
-  /** The newest entries, for Home. */
+  /** Entries added since the last settle-up (the open period), newest first, for Home. */
   recent: Entry[];
   /** Re-fetches everything and re-renders the current tab. Call after every write. */
   refresh: () => Promise<void>;
@@ -70,7 +71,8 @@ function isEditing(root: HTMLElement): boolean {
 }
 
 async function loadData(): Promise<AppData> {
-  const [summary, page] = await Promise.all([getSummary(), listEntries({ limit: RECENT_COUNT })]);
+  const summary = await getSummary();
+  const page = await listEntries({ limit: RECENT_COUNT, createdAfter: summary.last_settled_at });
   return { summary, recent: page.entries };
 }
 

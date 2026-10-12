@@ -43,6 +43,8 @@ export interface Summary {
   parties: Party[];
   people: Person[];
   nets: PartyNet[];
+  /** Creation time of the latest settle-up, or null if the group never settled. */
+  last_settled_at: string | null;
   me: { device_id: string; person_id: string | null; party_id: string | null };
 }
 
@@ -70,6 +72,8 @@ export interface Entry {
   split_inputs: SplitInput[] | null;
   recurring_bill_id: string | null;
   bill_period: string | null;
+  /** A "Settle full balance" payment, which ends a period. */
+  settles: boolean;
   created_by_person_id: string | null;
   created_at: string;
   updated_at: string;
@@ -133,4 +137,22 @@ export interface EntryInput {
   split_den?: number | null;
   split_inputs?: SplitInput[] | null;
   to_party_id?: string | null;
+}
+
+/** A settle-up period, bounded by creation time (pass the bounds to list_entries). */
+export interface PeriodInfo {
+  created_after: string | null;
+  entry_count: number;
+  first_date: string | null;
+  last_date: string | null;
+}
+
+export interface SettledPeriod extends PeriodInfo {
+  created_until: string;
+  settlement: Entry;
+}
+
+export interface Periods {
+  current: PeriodInfo;
+  settled: SettledPeriod[];
 }
