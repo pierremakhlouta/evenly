@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import vectors from '../shared/test-vectors.json';
-import { householdBalance, netPositions, type BalanceEntry } from '../src/money/balance';
+import { householdBalance, netChange, netPositions, type BalanceEntry } from '../src/money/balance';
 
 function toEntries(raw: (typeof vectors.balance)[number]['entries']): BalanceEntry[] {
   return raw.map((e) => ({
@@ -55,5 +55,33 @@ describe('householdBalance', () => {
       { partyId: 'h2', netCents: 0 },
     ];
     expect(householdBalance(zero, 'h1')).toEqual({ direction: 'settled', cents: 0 });
+  });
+});
+
+describe('netChange', () => {
+  const bill = {
+    paidByPartyId: 'h1',
+    totalCents: 10001,
+    shares: [
+      { partyId: 'h1', shareCents: 6667 },
+      { partyId: 'h2', shareCents: 3334 },
+    ],
+  };
+  const payment = {
+    paidByPartyId: 'h2',
+    totalCents: 5000,
+    shares: [{ partyId: 'h1', shareCents: 5000 }],
+  };
+
+  it('the payer is owed the other share', () => {
+    expect(netChange(bill, 'h1')).toBe(3334);
+  });
+
+  it('the other party owes its share', () => {
+    expect(netChange(bill, 'h2')).toBe(-3334);
+  });
+
+  it('a payment raises the sender and lowers the receiver', () => {
+    expect([netChange(payment, 'h2'), netChange(payment, 'h1')]).toEqual([5000, -5000]);
   });
 });

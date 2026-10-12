@@ -61,3 +61,13 @@ export function householdBalance(
   if (viewer.netCents < 0) return { direction: 'you_owe_them', cents: -viewer.netCents };
   return { direction: 'settled', cents: 0 };
 }
+
+/**
+ * How one entry moves a party's net: what it paid minus its share. Positive means
+ * the entry made others owe this party more (or this party owe less).
+ */
+export function netChange(entry: BalanceEntry, partyId: string): number {
+  const paid = entry.paidByPartyId === partyId ? entry.totalCents : 0;
+  const share = entry.shares.find((s) => s.partyId === partyId)?.shareCents ?? 0;
+  return paid - share;
+}

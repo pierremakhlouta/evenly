@@ -1,11 +1,17 @@
 /**
  * App shell: boots the phone (join, pick person, or straight in), routes between
- * tabs with the URL hash (#/home, #/history, #/settings), and owns the summary.
+ * tabs with the URL hash (#/home, #/history, #/settings), owns the shared data,
+ * and keeps phones in sync.
+ *
+ * Sync (no Realtime on purpose, see DECISIONS.md): refetch when the app comes back
+ * into view, every 30 seconds while visible, after every write, and on the refresh
+ * button. A background refresh only re-renders when the data actually changed and
+ * nobody is typing, so it never wipes a half-filled form.
  */
 import { ApiError } from '../api/errors';
-import { getSummary } from '../api/rpc';
+import { getSummary, listEntries } from '../api/rpc';
 import { clearToken, getToken } from '../api/token';
-import type { Summary } from '../api/types';
+import type { Entry, Summary } from '../api/types';
 import { h, replace } from './dom';
 import { messageOf } from './errors';
 import { icon, type IconName } from './icons';
@@ -18,15 +24,25 @@ import { GroupView } from './state';
 
 export type Tab = 'home' | 'history' | 'settings';
 
+const POLL_MS = 30_000;
+const RECENT_COUNT = 10;
+
 /** What every tab screen gets. */
 export interface AppContext {
   view: GroupView;
-  /** Re-fetches the summary and re-renders the current tab. */
+  /** The newest entries, for Home. */
+  recent: Entry[];
+  /** Re-fetches everything and re-renders the current tab. Call after every write. */
   refresh: () => Promise<void>;
   /** Signs this phone out of the group (back to the join screen). */
   leave: () => void;
   /** Goes back to "Who are you?" to switch person. */
   switchPerson: () => void;
+}
+
+interface AppData {
+  summary: Summary;
+  recent: Entry[];
 }
 
 const TABS: { tab: Tab; label: string; icon: IconName }[] = [
@@ -40,20 +56,49 @@ export function currentTab(hash: string): Tab {
   return name === 'history' || name === 'settings' ? name : 'home';
 }
 
-export function startApp(root: HTMLElement): void {
-  let summary: Summary | null = null;
+/** True while someone is typing or has a form open, so a background refresh must wait. */
+function isEditing(root: HTMLElement): boolean {
+  const active = document.activeElement;
+  return (
+    root.querySelector('form') !== null ||
+    (active instanceof HTMLElement &&
+      root.contains(active) &&
+      /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))
+  );
+}
 
-  const show = (...children: Node[]) => {
-    replace(root, ...children);
-    window.scrollTo(0, 0);
+async function loadData(): Promise<AppData> {
+  const [summary, page] = await Promise.all([getSummary(), listEntries({ limit: RECENT_COUNT })]);
+  return { summary, recent: page.entries };
+}
+
+export function startApp(root: HTMLElement): void {
+  let data: AppData | null = null;
+  let renderedJson = '';
+  let inFlight: Promise<void> | null = null;
+
+  const offlineBanner = h(
+    'div',
+    { class: 'offline-banner', role: 'status', hidden: navigator.onLine },
+    "You're offline. Changes are paused until you reconnect.",
+  );
+  const updateOnline = () => {
+    offlineBanner.hidden = navigator.onLine;
+    document.documentElement.classList.toggle('offline', !navigator.onLine);
+  };
+
+  const show = (children: Node[], keepScroll = false) => {
+    const y = window.scrollY;
+    replace(root, offlineBanner, ...children);
+    window.scrollTo(0, keepScroll ? y : 0);
   };
 
   const loading = () => {
-    show(h('main', { class: 'screen screen-center' }, h('p', { class: 'loading' }, 'Loading…')));
+    show([h('main', { class: 'screen screen-center' }, h('p', { class: 'loading' }, 'Loading…'))]);
   };
 
   const failed = (error: unknown) => {
-    show(
+    show([
       h(
         'main',
         { class: 'screen screen-center' },
@@ -64,26 +109,15 @@ export function startApp(root: HTMLElement): void {
           'Try again',
         ),
       ),
-    );
+    ]);
   };
 
   const leave = () => {
     clearToken();
-    summary = null;
+    data = null;
+    renderedJson = '';
     void boot();
   };
-
-  const context = (): AppContext => ({
-    view: new GroupView(summary as Summary),
-    refresh: async () => {
-      summary = await getSummary();
-      renderTab();
-    },
-    leave,
-    switchPerson: () => {
-      if (summary) show(whoScreen(summary, () => void boot()));
-    },
-  });
 
   const tabbar = (active: Tab) =>
     h(
@@ -103,43 +137,100 @@ export function startApp(root: HTMLElement): void {
       ),
     );
 
-  const renderTab = () => {
-    if (!summary) return;
+  const context = (current: AppData): AppContext => ({
+    view: new GroupView(current.summary),
+    recent: current.recent,
+    refresh: () => refresh(true),
+    leave,
+    switchPerson: () => {
+      show([whoScreen(current.summary, () => void boot())]);
+    },
+  });
+
+  const renderTab = (keepScroll = false) => {
+    if (!data) return;
+    renderedJson = JSON.stringify(data);
     const tab = currentTab(location.hash);
-    const ctx = context();
+    const ctx = context(data);
     const screen =
       tab === 'history'
         ? historyScreen()
         : tab === 'settings'
           ? settingsScreen(ctx)
           : homeScreen(ctx);
-    show(screen, tabbar(tab));
+    show([screen, tabbar(tab)], keepScroll);
+  };
+
+  /**
+   * Fetches fresh data. force = true (after a write or a tap on refresh) always
+   * re-renders and reports errors; a background refresh re-renders only when the
+   * data changed and nobody is editing, and ignores network errors.
+   */
+  const refresh = (force: boolean): Promise<void> => {
+    if (inFlight) return inFlight;
+    inFlight = (async () => {
+      try {
+        const next = await loadData();
+        data = next;
+        if (!new GroupView(next.summary).hasPerson) {
+          show([whoScreen(next.summary, () => void boot())]);
+          return;
+        }
+        if (force || (JSON.stringify(next) !== renderedJson && !isEditing(root))) {
+          renderTab(true);
+        }
+      } catch (e) {
+        if (e instanceof ApiError && e.kind === 'device') {
+          leave();
+          return;
+        }
+        if (force) throw e;
+      } finally {
+        inFlight = null;
+      }
+    })();
+    return inFlight;
   };
 
   const boot = async () => {
     if (!getToken()) {
-      show(joinScreen(() => void boot()));
+      show([joinScreen(() => void boot())]);
       return;
     }
     loading();
     try {
-      summary = await getSummary();
+      data = await loadData();
     } catch (e) {
       if (e instanceof ApiError && e.kind === 'device') {
         clearToken();
-        show(joinScreen(() => void boot()));
+        show([joinScreen(() => void boot())]);
         return;
       }
       failed(e);
       return;
     }
-    if (!new GroupView(summary).hasPerson) {
-      show(whoScreen(summary, () => void boot()));
+    if (!new GroupView(data.summary).hasPerson) {
+      show([whoScreen(data.summary, () => void boot())]);
       return;
     }
     renderTab();
   };
 
-  window.addEventListener('hashchange', renderTab);
+  const backgroundRefresh = () => {
+    if (data && document.visibilityState === 'visible' && navigator.onLine) void refresh(false);
+  };
+
+  window.addEventListener('hashchange', () => {
+    renderTab();
+  });
+  document.addEventListener('visibilitychange', backgroundRefresh);
+  window.addEventListener('online', () => {
+    updateOnline();
+    backgroundRefresh();
+  });
+  window.addEventListener('offline', updateOnline);
+  setInterval(backgroundRefresh, POLL_MS);
+
+  updateOnline();
   void boot();
 }
