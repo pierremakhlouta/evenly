@@ -1,6 +1,6 @@
 import { addSelf, setDevicePerson } from '../../api/rpc';
 import type { Person, Summary } from '../../api/types';
-import { busy, errorLine, field, segmented } from '../components/forms';
+import { busy, errorLine, field, fieldGroup, segmented } from '../components/forms';
 import { h, replace } from '../dom';
 import { messageOf } from '../errors';
 import { GroupView } from '../state';
@@ -172,7 +172,7 @@ export function whoScreen(summary: Summary, onDone: () => void): HTMLElement {
       },
       field('Your name', name),
       view.mode === 'households'
-        ? field(
+        ? fieldGroup(
             'Your household',
             segmented(
               'Your household',

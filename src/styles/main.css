@@ -516,3 +516,110 @@ button.list-item:active {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- Actions */
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ---------------------------------------------------------------- Bottom sheet */
+
+body.sheet-open {
+  overflow: hidden;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.sheet[open] {
+  animation: sheet-up 0.22s ease-out;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: none;
+  }
+}
+
+.sheet-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px calc(16px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
+}
+
+.sheet-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  background: var(--surface);
+}
+
+.sheet-header h2 {
+  font-size: 19px;
+}
+
+.preview {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.fraction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fraction .input {
+  width: 6em;
+  text-align: center;
+}
+
+select.input {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 15px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}

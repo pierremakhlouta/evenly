@@ -29,6 +29,8 @@ const RECENT_COUNT = 10;
 
 /** What every tab screen gets. */
 export interface AppContext {
+  /** The app root, where sheets are mounted. */
+  root: HTMLElement;
   view: GroupView;
   /** The newest entries, for Home. */
   recent: Entry[];
@@ -138,6 +140,7 @@ export function startApp(root: HTMLElement): void {
     );
 
   const context = (current: AppData): AppContext => ({
+    root,
     view: new GroupView(current.summary),
     recent: current.recent,
     refresh: () => refresh(true),

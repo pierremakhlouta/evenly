@@ -34,13 +34,18 @@ const MESSAGES: Record<string, string> = {
   config: 'The app is missing its server settings.',
 };
 
+/** The friendly message for an error code (database or split math). */
+export function messageFor(code: string): string {
+  return MESSAGES[code] ?? 'Something went wrong. Please try again.';
+}
+
 export class ApiError extends Error {
   constructor(
     readonly code: string,
     readonly kind: ApiErrorKind,
     readonly detail?: string,
   ) {
-    super(MESSAGES[code] ?? 'Something went wrong. Please try again.');
+    super(messageFor(code));
     this.name = 'ApiError';
   }
 }

@@ -7,6 +7,7 @@ import { h } from '../dom';
 import { messageOf } from '../errors';
 import { icon } from '../icons';
 import type { GroupView } from '../state';
+import { openExpenseSheet } from './expense';
 
 /** The balance card, phrased from this phone's household. */
 function balanceCard(view: GroupView): HTMLElement {
@@ -125,6 +126,24 @@ export function homeScreen(ctx: AppContext): HTMLElement {
     { class: 'screen with-tabbar' },
     h('header', { class: 'topbar' }, h('h1', {}, view.summary.group.name), refreshButton),
     balanceCard(view),
+    view.mode === 'households'
+      ? h(
+          'div',
+          { class: 'actions' },
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn btn-primary btn-block',
+              'data-write': true,
+              onclick: () => {
+                openExpenseSheet(ctx, ctx.root);
+              },
+            },
+            'Add expense',
+          ),
+        )
+      : null,
     h(
       'section',
       { class: 'stack' },

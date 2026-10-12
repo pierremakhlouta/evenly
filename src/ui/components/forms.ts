@@ -11,6 +11,24 @@ export function field(label: string, input: HTMLElement, hint?: string): HTMLEle
   );
 }
 
+let groupIds = 0;
+
+/**
+ * Labelled group for button controls (toggles, chips). Not a <label>, because a
+ * label forwards taps on its text to the first button inside it.
+ */
+export function fieldGroup(label: string, control: HTMLElement, hint?: string): HTMLElement {
+  groupIds += 1;
+  const id = `group-label-${String(groupIds)}`;
+  return h(
+    'div',
+    { class: 'field', role: 'group', 'aria-labelledby': id },
+    h('span', { class: 'field-label', id }, label),
+    control,
+    hint ? h('span', { class: 'field-hint' }, hint) : null,
+  );
+}
+
 /** An inline error line that announces itself to screen readers. */
 export function errorLine(): {
   el: HTMLElement;

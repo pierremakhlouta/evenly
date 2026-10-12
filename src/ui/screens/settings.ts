@@ -2,7 +2,7 @@ import { renameParty, updateGroup, upsertPerson } from '../../api/rpc';
 import type { Person } from '../../api/types';
 import { APP_NAME, APP_VERSION } from '../../config';
 import type { AppContext } from '../app';
-import { busy, errorLine, field, segmented } from '../components/forms';
+import { busy, errorLine, field, fieldGroup, segmented } from '../components/forms';
 import { h, replace } from '../dom';
 import { messageOf } from '../errors';
 
@@ -186,7 +186,7 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
         },
         field('Name', name),
         view.mode === 'households'
-          ? field(
+          ? fieldGroup(
               'Household',
               segmented(
                 'Household',
