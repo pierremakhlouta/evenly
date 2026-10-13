@@ -4,7 +4,7 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 [![CI](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml/badge.svg)](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml)
 
-> Live for its first two households. Settings, polish and the home-screen app are next.
+> Feature complete for household mode and installable as a home-screen app. Launch (Phase 7) is next.
 > Live: https://pierremakhlouta.github.io/evenly/ (a group code and PIN are needed to join)
 
 ## Two modes, one engine
@@ -23,14 +23,17 @@ Both modes use the same engine: money always moves between _parties_, and househ
 - **Record payment**: partial payments, or **Settle full balance**, which zeroes the balance and starts a new period.
 - **History**: settle-up periods, newest first, each one opening to its entries.
 - **Every entry** can be opened to see its shares and a plain-words change log ("Edited by Sam · Amount: $100.00 → $120.00"), then edited, deleted, or restored from Deleted entries.
+- **Settings**: rename the group and households; admins manage people (rename, move, make admin, reset a PIN, remove); see and revoke phones; export every entry as CSV.
+- **Installable**: add it to the home screen on iPhone or Android; it opens full screen and starts even offline (data is never cached, so balances are always live).
 - Phones stay in sync by refreshing on focus, every 30 seconds and after every change. There's an offline banner, and light and dark themes follow the phone.
+- **Accessible**: every screen is checked against WCAG 2.2 AA with axe-core in both themes; nothing relies on color alone.
 
 ## Tech stack
 
 - TypeScript + Vite, no UI framework (the whole app is about 10 KB gzipped)
 - Supabase (Postgres) with all access through RPC functions, called with a small typed `fetch` client
 - GitHub Pages, deployed by GitHub Actions
-- Vitest for the money math and UI logic, pgTAP for the database, Playwright end-to-end tests on emulated iPhone Safari and Android Chrome
+- Vitest for the money math and UI logic, pgTAP for the database, Playwright end-to-end and axe accessibility tests on emulated iPhone Safari and Android Chrome
 
 ## Money rules
 
