@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  * Screenshots for review land in e2e/screenshots (gitignored).
  */
 const PORT = 5174;
+/** The production build (with the service worker) is tested on its own port. */
+const PREVIEW_PORT = 5175;
 
 export default defineConfig({
   testDir: 'e2e',
@@ -21,13 +23,26 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'iphone', use: { ...devices['iPhone 15'] } },
-    { name: 'android', use: { ...devices['Pixel 7'] } },
+    { name: 'iphone', use: { ...devices['iPhone 15'] }, testIgnore: /pwa\.spec/ },
+    { name: 'android', use: { ...devices['Pixel 7'] }, testIgnore: /pwa\.spec/ },
+    {
+      name: 'pwa',
+      testMatch: /pwa\.spec/,
+      use: { ...devices['Pixel 7'], baseURL: `http://localhost:${String(PREVIEW_PORT)}/evenly/` },
+    },
   ],
-  webServer: {
-    command: `npm run dev -- --port ${String(PORT)} --strictPort`,
-    url: `http://localhost:${String(PORT)}/evenly/`,
-    reuseExistingServer: !process.env.CI,
-    env: { VITE_SUPABASE_URL: 'http://127.0.0.1:54321' },
-  },
+  webServer: [
+    {
+      command: `npm run dev -- --port ${String(PORT)} --strictPort`,
+      url: `http://localhost:${String(PORT)}/evenly/`,
+      reuseExistingServer: !process.env.CI,
+      env: { VITE_SUPABASE_URL: 'http://127.0.0.1:54321' },
+    },
+    {
+      command: `npm run build -- --outDir dist-e2e && npx vite preview --outDir dist-e2e --port ${String(PREVIEW_PORT)} --strictPort`,
+      url: `http://localhost:${String(PREVIEW_PORT)}/evenly/`,
+      reuseExistingServer: !process.env.CI,
+      env: { VITE_SUPABASE_URL: 'http://127.0.0.1:54321' },
+    },
+  ],
 });

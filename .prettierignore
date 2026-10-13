@@ -6,3 +6,4 @@ supabase/.temp/
 e2e/screenshots/
 test-results/
 playwright-report/
+dist-e2e/

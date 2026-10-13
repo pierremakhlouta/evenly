@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Evenly</title>
+  <rect width="512" height="512" fill="#1f6feb"/>
+  <g fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- post, top knob and base -->
+    <rect x="244" y="132" width="24" height="252" rx="12" stroke="none"/>
+    <circle cx="256" cy="122" r="22" stroke="none"/>
+    <rect x="168" y="372" width="176" height="28" rx="14" stroke="none"/>
+    <!-- beam -->
+    <rect x="96" y="156" width="320" height="22" rx="11" stroke="none"/>
+    <!-- strings -->
+    <path d="M124 178 L84 286 M124 178 L164 286 M388 178 L348 286 M388 178 L428 286" fill="none" stroke-width="10"/>
+    <!-- pans -->
+    <path d="M70 286 H178 A54 54 0 0 1 70 286 Z" stroke="none"/>
+    <path d="M334 286 H442 A54 54 0 0 1 334 286 Z" stroke="none"/>
+  </g>
+</svg>

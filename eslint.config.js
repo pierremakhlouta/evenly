@@ -4,7 +4,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'coverage/', 'node_modules/', 'supabase/'] },
+  { ignores: ['dist/', 'dist-e2e/', 'coverage/', 'node_modules/', 'supabase/'] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
@@ -19,6 +19,10 @@ export default tseslint.config(
   {
     files: ['**/*.js'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
   },
   prettier,
 );
