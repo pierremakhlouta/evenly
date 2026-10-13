@@ -143,3 +143,40 @@ test('edit keeps the people and amounts', async ({ page }) => {
   await expect(page.getByLabel("Dana's value")).toHaveValue('70.00');
   await expect(page.getByLabel("Eli's value")).toHaveValue('30.00');
 });
+
+test('people-mode bills: a shortcut by shares, and an automatic one', async ({ page }) => {
+  const group = peopleGroup();
+  await asDana(page, group.danaToken, '#/settings');
+
+  await page.getByRole('button', { name: 'Add bill' }).click();
+  await page.getByLabel('Name').fill('Internet');
+  await page.getByLabel('Usual amount').fill('90');
+  await expect(sheet(page).locator('.preview')).toHaveText('Your part: $30.00 each time.');
+  await page.getByRole('button', { name: 'Add bill' }).last().click();
+
+  await page.getByRole('button', { name: 'Add bill' }).click();
+  await page.getByLabel('Name').fill('Rent');
+  await page.getByLabel('Usual amount').fill('1200');
+  await page.getByRole('radio', { name: 'Shares' }).click();
+  await page.getByLabel("Dana's value").fill('2');
+  await page.getByLabel("Eli's value").fill('1');
+  await page.getByLabel("Finn's value").fill('1');
+  await page.getByLabel('Add automatically every month').check();
+  await expect(sheet(page).locator('.preview')).toHaveText(
+    'Your part: $600.00, added on the 1st of every month.',
+  );
+  await shot(page, '43-people-bill');
+  await page.getByRole('button', { name: 'Add bill' }).last().click();
+  await expect(page.locator('.bill-row', { hasText: 'Rent' })).toContainText(
+    'Added on the 1st · $1,200.00',
+  );
+
+  await page.getByRole('link', { name: 'Home', exact: true }).click();
+  await page
+    .getByRole('group', { name: 'Saved bills' })
+    .getByRole('button', { name: 'Internet' })
+    .click();
+  await expect(page.getByLabel('Description')).toHaveValue('Internet');
+  await expect(page.getByLabel('Amount', { exact: true })).toHaveValue('90.00');
+  await expect(sheet(page).locator('.split-share')).toHaveText(['$30.00', '$30.00', '$30.00']);
+});

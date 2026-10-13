@@ -25,10 +25,10 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 ## Two modes, one engine
 
-- **Household mode** (live): people belong to one of two households, and the app shows one balance between them.
-- **People mode** (planned): every person is their own side, with balances simplified into as few payments as possible.
+- **Household mode**: people belong to one of two households, and the app shows one balance between them.
+- **People mode**: every person is their own side, Splitwise style. Expenses are split between any of them (equally, by amounts, percent or shares), Home shows everyone's balance and the fewest payments that settle the group, and **Settle up everyone** records them all at once.
 
-Money always moves between _parties_. In household mode a party is a household; in people mode it is a person. Household mode is simply the two-party case, so the database, the split math and the debt simplification already support any number of parties.
+Money always moves between _parties_. In household mode a party is a household; in people mode it is a person. Household mode is simply the two-party case, so both modes share one database, one set of split math and one debt simplifier (checked to give identical payments in TypeScript and SQL).
 
 ## Architecture
 
@@ -62,7 +62,7 @@ flowchart LR
 - A party's net position is what it paid minus its shares. Nets always sum to zero.
 - Household splits round the other household's share half up; the payer gets the remainder.
 - People-mode splits (equal, amounts, percent, weights) use largest-remainder allocation with ties broken by sort order.
-- Debts between N people settle in at most N - 1 payments.
+- Debts between N people settle in at most N - 1 payments: repeatedly match the largest creditor with the largest debtor. The database computes the payments it records; the phone's list is only a preview it must match.
 
 The same cases in [`shared/test-vectors.json`](shared/test-vectors.json) test both the TypeScript code (Vitest) and the SQL functions (pgTAP), so they must agree to the cent. The database is the source of truth: it computes and stores the shares, and the TypeScript copy only powers the live preview in forms.
 

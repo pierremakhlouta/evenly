@@ -14,6 +14,7 @@ import type {
   EntryWithEvents,
   Periods,
   RecurringBill,
+  SplitInput,
   Summary,
 } from './types';
 
@@ -221,6 +222,8 @@ export interface BillInput {
   split_type: string;
   split_num?: number | null;
   split_den?: number | null;
+  /** People mode: who's in the split, with their amount, percent or weight. */
+  split_inputs?: SplitInput[] | null;
   default_total_cents: number | null;
   auto_add: boolean;
   day_of_month: number;
@@ -236,6 +239,7 @@ export const upsertRecurringBill = (id: string | null, bill: BillInput) =>
     p_split_type: bill.split_type,
     p_split_num: bill.split_num ?? null,
     p_split_den: bill.split_den ?? null,
+    p_split_inputs: bill.split_inputs ?? null,
     p_default_total_cents: bill.default_total_cents,
     p_auto_add: bill.auto_add,
     p_day_of_month: bill.day_of_month,

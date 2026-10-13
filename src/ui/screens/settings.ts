@@ -18,6 +18,7 @@ import { h, replace } from '../dom';
 import { messageOf } from '../errors';
 import { icon } from '../icons';
 import { billSummary, openBillSheet } from './bill';
+import { openPeopleBillSheet } from './people-bill';
 import { openPersonSheet } from './person';
 
 /**
@@ -185,6 +186,7 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
         split_type: b.split_type,
         split_num: b.split_num,
         split_den: b.split_den,
+        split_inputs: b.split_inputs,
         default_total_cents: b.default_total_cents,
         auto_add: b.auto_add,
         day_of_month: b.day_of_month,
@@ -221,7 +223,8 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
           type: 'button',
           class: 'bill-open',
           onclick: () => {
-            openBillSheet(ctx, bill);
+            if (view.mode === 'people') openPeopleBillSheet(ctx, bill);
+            else openBillSheet(ctx, bill);
           },
         },
         h('span', { class: 'entry-title' }, bill.name),
@@ -234,49 +237,44 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
 
   const activeBills = ctx.bills.filter((b) => b.active);
   const archivedBills = ctx.bills.filter((b) => !b.active);
-  const billsSection =
-    view.mode === 'households'
+  // Both modes have monthly bills; the bill form follows the group's mode.
+  const billsSection = h(
+    'section',
+    { class: 'stack' },
+    h('h2', { class: 'section-title' }, 'Monthly bills'),
+    activeBills.length
       ? h(
-          'section',
-          { class: 'stack' },
-          h('h2', { class: 'section-title' }, 'Monthly bills'),
-          activeBills.length
-            ? h(
-                'div',
-                { class: 'list' },
-                activeBills.map((b, i) => billRow(b, i, activeBills)),
-              )
-            : h('p', { class: 'muted' }, 'Save bills like Rent or Hydro to add them in one tap.'),
-          h(
-            'button',
-            {
-              type: 'button',
-              class: 'btn btn-secondary btn-block',
-              'data-write': true,
-              onclick: () => {
-                openBillSheet(ctx);
-              },
-            },
-            'Add bill',
-          ),
-          archivedBills.length
-            ? h(
-                'details',
-                { class: 'archived' },
-                h(
-                  'summary',
-                  { class: 'muted' },
-                  `Archived bills (${String(archivedBills.length)})`,
-                ),
-                h(
-                  'div',
-                  { class: 'list' },
-                  archivedBills.map((b, i) => billRow(b, i, archivedBills)),
-                ),
-              )
-            : null,
+          'div',
+          { class: 'list' },
+          activeBills.map((b, i) => billRow(b, i, activeBills)),
         )
-      : null;
+      : h('p', { class: 'muted' }, 'Save bills like Rent or Hydro to add them in one tap.'),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'btn btn-secondary btn-block',
+        'data-write': true,
+        onclick: () => {
+          if (view.mode === 'people') openPeopleBillSheet(ctx);
+          else openBillSheet(ctx);
+        },
+      },
+      'Add bill',
+    ),
+    archivedBills.length
+      ? h(
+          'details',
+          { class: 'archived' },
+          h('summary', { class: 'muted' }, `Archived bills (${String(archivedBills.length)})`),
+          h(
+            'div',
+            { class: 'list' },
+            archivedBills.map((b, i) => billRow(b, i, archivedBills)),
+          ),
+        )
+      : null,
+  );
 
   const addArea = h('div', { class: 'stack' });
 

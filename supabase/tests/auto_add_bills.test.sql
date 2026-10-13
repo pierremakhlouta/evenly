@@ -1,6 +1,6 @@
 -- Auto-added monthly bills. Made-up names and numbers only.
 begin;
-select plan(13);
+select plan(14);
 
 delete from private.pin_attempts;
 create temp table t (key text primary key, val text) on commit drop;
@@ -57,6 +57,23 @@ select is(private.auto_add_bills('2026-10-31'), 0, 'a deleted copy is not added 
 select public.archive_recurring_bill(pg_temp.v('tok'), pg_temp.v('wifi')::uuid);
 select is(private.auto_add_bills('2026-11-20'), 1, 'next month the active bill is added again, the archived one is not');
 select is(pg_temp.bill_entries(pg_temp.v('wifi')), 1, 'the archived bill keeps its past entry');
+
+-- People mode: an automatic bill split by shares.
+insert into t values ('code_p', private.create_group('Flat', 'people', '5555'));
+insert into t values ('tokp', public.register_device(pg_temp.v('code_p'), '5555') ->> 'token');
+insert into t values ('dana', public.add_self(pg_temp.v('tokp'), 'Dana', null, '1111')::text);
+insert into t values ('eli', public.upsert_person(pg_temp.v('tokp'), null, 'Eli')::text);
+insert into t select 'pd', party_id::text from public.people where id = pg_temp.v('dana')::uuid;
+insert into t select 'pe', party_id::text from public.people where id = pg_temp.v('eli')::uuid;
+insert into t values ('flat_rent', public.upsert_recurring_bill(pg_temp.v('tokp'), null, 'Rent', pg_temp.v('pd')::uuid, 'weights',
+  p_split_inputs => jsonb_build_array(jsonb_build_object('party_id', pg_temp.v('pd'), 'value', 2), jsonb_build_object('party_id', pg_temp.v('pe'), 'value', 1)),
+  p_default_total_cents => 90000, p_auto_add => true, p_day_of_month => 1) ->> 'id');
+select private.auto_add_bills('2026-12-02');
+select is(
+  (select jsonb_object_agg(s.party_id, s.share_cents) from public.entry_shares s
+     join public.entries e on e.id = s.entry_id where e.recurring_bill_id = pg_temp.v('flat_rent')::uuid),
+  jsonb_build_object(pg_temp.v('pd'), 60000, pg_temp.v('pe'), 30000),
+  'a people-mode automatic bill is split by its saved shares');
 
 select * from finish();
 rollback;
