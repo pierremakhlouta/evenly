@@ -108,3 +108,45 @@ export function samPhone(group: TestGroup, label = 'Kitchen iPad'): string {
     select t from (select public.register_device('${group.code}', '${GROUP_PIN}', '${label}') ->> 'token' as t) x,
     lateral (select public.set_device_person(x.t, '${group.sam}', '8642')) y;`);
 }
+
+export interface PeopleGroup {
+  code: string;
+  danaToken: string;
+  dana: string;
+  eli: string;
+  finn: string;
+}
+
+/** A people-mode group: Dana (admin, on a phone, party = person) plus Eli and Finn. */
+export function peopleGroup(): PeopleGroup {
+  const code = sql(
+    `select private.create_group('E2E trip ${randomUUID().slice(0, 8)}', 'people', '${GROUP_PIN}');`,
+  );
+  const json = sql(`
+    do $$
+    declare
+      v_tok text := public.register_device('${code}', '${GROUP_PIN}', 'E2E phone') ->> 'token';
+      v_person uuid;
+      v_dana uuid;
+      v_eli uuid;
+      v_finn uuid;
+    begin
+      -- Call each RPC once, then look up the party (a function in a WHERE clause runs per row).
+      v_person := public.add_self(v_tok, 'Dana', null, '${PERSONAL_PIN}');
+      select party_id into v_dana from public.people where id = v_person;
+      v_person := public.upsert_person(v_tok, null, 'Eli');
+      select party_id into v_eli from public.people where id = v_person;
+      v_person := public.upsert_person(v_tok, null, 'Finn');
+      select party_id into v_finn from public.people where id = v_person;
+      create temp table e2e_out as
+        select jsonb_build_object('code', '${code}', 'danaToken', v_tok, 'dana', v_dana, 'eli', v_eli, 'finn', v_finn)::text as j;
+    end $$;
+    select j from e2e_out;`);
+  return JSON.parse(json.split('\n').pop() ?? '{}') as PeopleGroup;
+}
+
+/** Dana pays an expense split equally between everyone. */
+export function addGroupExpense(group: PeopleGroup, description: string, totalCents: number): void {
+  sql(`select public.add_entry('${group.danaToken}', 'expense', '${description}', private.today(), ${String(totalCents)}, '${group.dana}', null, 'equal', null, null,
+    jsonb_build_array(jsonb_build_object('party_id', '${group.dana}'), jsonb_build_object('party_id', '${group.eli}'), jsonb_build_object('party_id', '${group.finn}')));`);
+}

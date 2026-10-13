@@ -149,7 +149,10 @@ export interface PeriodInfo {
 
 export interface SettledPeriod extends PeriodInfo {
   created_until: string;
+  /** The first settling payment of the period. */
   settlement: Entry;
+  /** Every settling payment made together (people mode can have several). */
+  settlements?: Entry[];
 }
 
 export interface Periods {

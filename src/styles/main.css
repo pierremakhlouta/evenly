@@ -801,3 +801,44 @@ a.list-item:active {
 .device-row {
   padding-right: 4px;
 }
+
+/* ---------------------------------------------------------------- People mode */
+
+.split-row {
+  gap: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.split-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.check {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.input-small {
+  width: 6.5em;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.split-share {
+  min-width: 5.5em;
+  text-align: right;
+  font-size: 14px;
+}
+
+.list-item.mine {
+  font-weight: 600;
+}

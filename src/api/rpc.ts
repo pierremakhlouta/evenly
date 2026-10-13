@@ -159,6 +159,27 @@ export const listEntries = (
 
 export const listPeriods = () => withToken<Periods>('list_periods');
 
+export interface SettlePayment {
+  from: string;
+  to: string;
+  cents: number;
+}
+
+/**
+ * People mode: records every suggested payment at once, which settles everyone.
+ * expected is the list shown; changed balances fail with balance_changed.
+ */
+export const settleUpAll = (input: {
+  expected: SettlePayment[];
+  entryDate: string;
+  note?: string;
+}) =>
+  withToken<Entry[]>('settle_up_all', {
+    p_expected: input.expected,
+    p_entry_date: input.entryDate,
+    p_note: input.note || undefined,
+  });
+
 /**
  * Household mode: the household that owes pays the full balance, which ends the
  * period. expectedCents is the amount shown; a changed balance fails with balance_changed.

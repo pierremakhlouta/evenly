@@ -30,7 +30,12 @@ function countText(n: number): string {
   return n === 1 ? '1 entry' : `${String(n)} entries`;
 }
 
-function settledText(view: GroupView, period: SettledPeriod): string {
+export function settledText(view: GroupView, period: SettledPeriod): string {
+  const all = period.settlements ?? [period.settlement];
+  if (all.length > 1) {
+    const total = all.reduce((sum, e) => sum + e.total_cents, 0);
+    return `Settled ${formatCents(total)} in ${String(all.length)} payments on ${formatDay(period.settlement.entry_date)}`;
+  }
   const s = period.settlement;
   const payer = s.paid_by_person_id
     ? view.personName(s.paid_by_person_id)

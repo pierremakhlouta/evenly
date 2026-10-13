@@ -9,6 +9,9 @@ import { icon } from '../icons';
 import type { GroupView } from '../state';
 import { openExpenseSheet } from './expense';
 import { openPaymentSheet } from './payment';
+import { openPeopleExpenseSheet } from './people-expense';
+import { peopleBalances } from './people-home';
+import { openPeoplePaymentSheet } from './people-payment';
 
 /** The balance card, phrased from this phone's household. */
 function balanceCard(view: GroupView): HTMLElement {
@@ -16,13 +19,18 @@ function balanceCard(view: GroupView): HTMLElement {
   const myParty = view.myPartyId ?? '';
 
   if (view.mode !== 'households') {
-    // People mode gets its own balance screen in Phase 8.
     const mine = nets.find((n) => n.partyId === myParty)?.netCents ?? 0;
+    const direction = mine > 0 ? 'they_owe_you' : mine < 0 ? 'you_owe_them' : 'settled';
     return h(
       'section',
-      { class: 'card balance' },
-      h('p', { class: 'balance-label' }, mine >= 0 ? "You're owed" : 'You owe'),
+      { class: `card balance balance-${direction}`, 'aria-live': 'polite' },
+      h(
+        'p',
+        { class: 'balance-label' },
+        mine > 0 ? "You're owed" : mine < 0 ? 'You owe' : 'All settled up',
+      ),
       h('p', { class: 'balance-amount money' }, formatCents(Math.abs(mine))),
+      h('p', { class: 'balance-sub muted' }, view.me?.name ?? ''),
     );
   }
 
@@ -53,8 +61,8 @@ export function homeScreen(ctx: AppContext): HTMLElement {
   const lastSettled = view.summary.last_settled_at;
   const settledOn = lastSettled ? formatDay(today(new Date(lastSettled))) : null;
   // Automatic bills add themselves, so only shortcut bills get a button.
-  const shortcuts =
-    view.mode === 'households' ? ctx.bills.filter((b) => b.active && !b.auto_add) : [];
+  const shortcuts = ctx.bills.filter((b) => b.active && !b.auto_add);
+  const people = view.mode === 'people';
 
   const refreshButton = h(
     'button',
@@ -90,7 +98,8 @@ export function homeScreen(ctx: AppContext): HTMLElement {
                 class: 'bill-chip',
                 'data-write': true,
                 onclick: () => {
-                  openExpenseSheet(ctx, ctx.root, undefined, bill);
+                  if (people) openPeopleExpenseSheet(ctx, ctx.root, undefined, bill);
+                  else openExpenseSheet(ctx, ctx.root, undefined, bill);
                 },
               },
               bill.name,
@@ -98,36 +107,37 @@ export function homeScreen(ctx: AppContext): HTMLElement {
           ),
         )
       : null,
-    view.mode === 'households'
-      ? h(
-          'div',
-          { class: 'actions' },
-          h(
-            'button',
-            {
-              type: 'button',
-              class: 'btn btn-primary btn-block',
-              'data-write': true,
-              onclick: () => {
-                openExpenseSheet(ctx, ctx.root);
-              },
-            },
-            'Add expense',
-          ),
-          h(
-            'button',
-            {
-              type: 'button',
-              class: 'btn btn-secondary btn-block',
-              'data-write': true,
-              onclick: () => {
-                openPaymentSheet(ctx, ctx.root);
-              },
-            },
-            'Record payment',
-          ),
-        )
-      : null,
+    h(
+      'div',
+      { class: 'actions' },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn-primary btn-block',
+          'data-write': true,
+          onclick: () => {
+            if (people) openPeopleExpenseSheet(ctx, ctx.root);
+            else openExpenseSheet(ctx, ctx.root);
+          },
+        },
+        'Add expense',
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn btn-secondary btn-block',
+          'data-write': true,
+          onclick: () => {
+            if (people) openPeoplePaymentSheet(ctx, ctx.root);
+            else openPaymentSheet(ctx, ctx.root);
+          },
+        },
+        'Record payment',
+      ),
+    ),
+    people ? peopleBalances(ctx) : null,
     h(
       'section',
       { class: 'stack' },

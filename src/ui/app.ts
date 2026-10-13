@@ -21,6 +21,8 @@ import { historyScreen } from './screens/history';
 import { homeScreen } from './screens/home';
 import { joinScreen } from './screens/join';
 import { openPaymentSheet } from './screens/payment';
+import { openPeopleExpenseSheet } from './screens/people-expense';
+import { openPeoplePaymentSheet } from './screens/people-payment';
 import { settingsScreen } from './screens/settings';
 import { whoScreen } from './screens/who';
 import { GroupView } from './state';
@@ -165,7 +167,11 @@ export function startApp(root: HTMLElement): void {
     openEntry: (entry) => {
       const ctx = context(current);
       openEntrySheet(ctx, entry, (e) => {
-        if (e.kind === 'expense') openExpenseSheet(ctx, root, e);
+        const people = ctx.view.mode === 'people';
+        if (e.kind === 'expense') {
+          if (people) openPeopleExpenseSheet(ctx, root, e);
+          else openExpenseSheet(ctx, root, e);
+        } else if (people) openPeoplePaymentSheet(ctx, root, e);
         else openPaymentSheet(ctx, root, e);
       });
     },
