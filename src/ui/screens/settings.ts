@@ -1,10 +1,13 @@
-import { renameParty, updateGroup, upsertPerson } from '../../api/rpc';
+import { renameParty, updateGroup, upsertPerson, upsertRecurringBill } from '../../api/rpc';
+import type { RecurringBill } from '../../api/types';
 import type { Person } from '../../api/types';
 import { APP_NAME, APP_VERSION } from '../../config';
 import type { AppContext } from '../app';
 import { busy, errorLine, field, fieldGroup, segmented } from '../components/forms';
 import { h, replace } from '../dom';
 import { messageOf } from '../errors';
+import { icon } from '../icons';
+import { billSummary, openBillSheet } from './bill';
 
 /**
  * Settings. For now: this phone, group and household names, and the people list
@@ -138,6 +141,113 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
       : h('p', { class: 'muted' }, 'Only an admin can rename the group or households.'),
   );
 
+  /** Swaps a bill's place with its neighbour (sort orders are rewritten in list order). */
+  const moveBill = async (bills: RecurringBill[], index: number, by: -1 | 1) => {
+    const order = [...bills];
+    const [moved] = order.splice(index, 1);
+    if (!moved) return;
+    order.splice(index + by, 0, moved);
+    for (const [i, b] of order.entries()) {
+      if (b.sort_order === i + 1) continue;
+      await upsertRecurringBill(b.id, {
+        name: b.name,
+        paid_by_party_id: b.paid_by_party_id,
+        split_type: b.split_type,
+        split_num: b.split_num,
+        split_den: b.split_den,
+        default_total_cents: b.default_total_cents,
+        auto_add: b.auto_add,
+        day_of_month: b.day_of_month,
+        sort_order: i + 1,
+      });
+    }
+    await ctx.refresh();
+  };
+
+  const billRow = (bill: RecurringBill, index: number, list: RecurringBill[]) => {
+    const move = (by: -1 | 1, label: string, name: 'up' | 'down') =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'icon-btn',
+          'aria-label': `${label} ${bill.name}`,
+          'data-write': true,
+          disabled: index + by < 0 || index + by >= list.length,
+          onclick: () => {
+            moveBill(list, index, by).catch((e: unknown) => {
+              alert(messageOf(e));
+            });
+          },
+        },
+        icon(name),
+      );
+    return h(
+      'div',
+      { class: 'list-item bill-row' },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'bill-open',
+          onclick: () => {
+            openBillSheet(ctx, bill);
+          },
+        },
+        h('span', { class: 'entry-title' }, bill.name),
+        h('span', { class: 'entry-meta muted' }, billSummary(bill)),
+      ),
+      bill.active ? move(-1, 'Move up', 'up') : null,
+      bill.active ? move(1, 'Move down', 'down') : null,
+    );
+  };
+
+  const activeBills = ctx.bills.filter((b) => b.active);
+  const archivedBills = ctx.bills.filter((b) => !b.active);
+  const billsSection =
+    view.mode === 'households'
+      ? h(
+          'section',
+          { class: 'stack' },
+          h('h2', { class: 'section-title' }, 'Monthly bills'),
+          activeBills.length
+            ? h(
+                'div',
+                { class: 'list' },
+                activeBills.map((b, i) => billRow(b, i, activeBills)),
+              )
+            : h('p', { class: 'muted' }, 'Save bills like Rent or Hydro to add them in one tap.'),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn btn-secondary btn-block',
+              'data-write': true,
+              onclick: () => {
+                openBillSheet(ctx);
+              },
+            },
+            'Add bill',
+          ),
+          archivedBills.length
+            ? h(
+                'details',
+                { class: 'archived' },
+                h(
+                  'summary',
+                  { class: 'muted' },
+                  `Archived bills (${String(archivedBills.length)})`,
+                ),
+                h(
+                  'div',
+                  { class: 'list' },
+                  archivedBills.map((b, i) => billRow(b, i, archivedBills)),
+                ),
+              )
+            : null,
+        )
+      : null;
+
   const addArea = h('div', { class: 'stack' });
 
   const showAddButton = () => {
@@ -254,6 +364,7 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
       ),
     ),
     groupSection,
+    billsSection,
     h(
       'section',
       { class: 'stack' },

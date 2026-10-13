@@ -194,6 +194,36 @@ export const restoreEntry = (id: string) => withToken<Entry>('restore_entry', { 
 
 export const listRecurringBills = () => withToken<RecurringBill[]>('list_recurring_bills');
 
+export interface BillInput {
+  name: string;
+  paid_by_party_id: string;
+  split_type: string;
+  split_num?: number | null;
+  split_den?: number | null;
+  default_total_cents: number | null;
+  auto_add: boolean;
+  day_of_month: number;
+  sort_order?: number | null;
+}
+
+/** Creates (id null) or updates a bill; saving an archived bill makes it active again. */
+export const upsertRecurringBill = (id: string | null, bill: BillInput) =>
+  withToken<RecurringBill>('upsert_recurring_bill', {
+    p_id: id,
+    p_name: bill.name,
+    p_paid_by_party_id: bill.paid_by_party_id,
+    p_split_type: bill.split_type,
+    p_split_num: bill.split_num ?? null,
+    p_split_den: bill.split_den ?? null,
+    p_default_total_cents: bill.default_total_cents,
+    p_auto_add: bill.auto_add,
+    p_day_of_month: bill.day_of_month,
+    p_sort_order: bill.sort_order ?? null,
+  });
+
+export const archiveRecurringBill = (id: string) =>
+  withToken<RecurringBill>('archive_recurring_bill', { p_id: id });
+
 export const listDevices = () => withToken<Device[]>('list_devices');
 
 export const revokeDevice = (id: string) => withToken<null>('revoke_device', { p_id: id });

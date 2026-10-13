@@ -4,6 +4,7 @@ import type { Summary } from '../src/api/types';
 import { currentTab } from '../src/ui/app';
 import { h } from '../src/ui/dom';
 import { today } from '../src/dates';
+import { billSummary, ordinal } from '../src/ui/screens/bill';
 import { dateRange } from '../src/ui/screens/history';
 import { GroupView } from '../src/ui/state';
 
@@ -131,5 +132,43 @@ describe('dateRange', () => {
 
   it('is empty for an empty period', () => {
     expect(dateRange(period(null, null))).toBe('');
+  });
+});
+
+describe('bill wording', () => {
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [4, '4th'],
+    [11, '11th'],
+    [12, '12th'],
+    [13, '13th'],
+    [21, '21st'],
+    [22, '22nd'],
+    [28, '28th'],
+  ])('%i is %s', (n, text) => {
+    expect(ordinal(n)).toBe(text);
+  });
+
+  const bill = {
+    id: 'b',
+    name: 'Rent',
+    paid_by_party_id: 'h1',
+    split_type: 'third' as const,
+    split_num: null,
+    split_den: null,
+    split_inputs: null,
+    default_total_cents: 240000,
+    auto_add: true,
+    day_of_month: 1,
+    active: true,
+    sort_order: 1,
+  };
+
+  it('summarises automatic bills and shortcuts', () => {
+    expect(billSummary(bill)).toBe('Added on the 1st · $2,400.00');
+    expect(billSummary({ ...bill, auto_add: false })).toBe('Shortcut · $2,400.00');
+    expect(billSummary({ ...bill, auto_add: false, default_total_cents: null })).toBe('Shortcut');
   });
 });

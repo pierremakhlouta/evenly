@@ -9,9 +9,9 @@
  * nobody is typing, so it never wipes a half-filled form.
  */
 import { ApiError } from '../api/errors';
-import { getSummary, listEntries } from '../api/rpc';
+import { getSummary, listEntries, listRecurringBills } from '../api/rpc';
 import { clearToken, getToken } from '../api/token';
-import type { Entry, Summary } from '../api/types';
+import type { Entry, RecurringBill, Summary } from '../api/types';
 import { h, replace } from './dom';
 import { messageOf } from './errors';
 import { icon, type IconName } from './icons';
@@ -38,6 +38,8 @@ export interface AppContext {
   view: GroupView;
   /** Entries added since the last settle-up (the open period), newest first, for Home. */
   recent: Entry[];
+  /** Saved monthly bills, active first, in sort order. */
+  bills: RecurringBill[];
   /** Re-fetches everything and re-renders the current tab. Call after every write. */
   refresh: () => Promise<void>;
   /** Signs this phone out of the group (back to the join screen). */
@@ -51,6 +53,7 @@ export interface AppContext {
 interface AppData {
   summary: Summary;
   recent: Entry[];
+  bills: RecurringBill[];
 }
 
 const TABS: { tab: Tab; label: string; icon: IconName }[] = [
@@ -77,8 +80,11 @@ function isEditing(root: HTMLElement): boolean {
 
 async function loadData(): Promise<AppData> {
   const summary = await getSummary();
-  const page = await listEntries({ limit: RECENT_COUNT, createdAfter: summary.last_settled_at });
-  return { summary, recent: page.entries };
+  const [page, bills] = await Promise.all([
+    listEntries({ limit: RECENT_COUNT, createdAfter: summary.last_settled_at }),
+    listRecurringBills(),
+  ]);
+  return { summary, recent: page.entries, bills };
 }
 
 export function startApp(root: HTMLElement): void {
@@ -150,6 +156,7 @@ export function startApp(root: HTMLElement): void {
     root,
     view: new GroupView(current.summary),
     recent: current.recent,
+    bills: current.bills,
     refresh: () => refresh(true),
     leave,
     switchPerson: () => {

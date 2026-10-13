@@ -52,6 +52,9 @@ export function homeScreen(ctx: AppContext): HTMLElement {
   const { view, recent } = ctx;
   const lastSettled = view.summary.last_settled_at;
   const settledOn = lastSettled ? formatDay(today(new Date(lastSettled))) : null;
+  // Automatic bills add themselves, so only shortcut bills get a button.
+  const shortcuts =
+    view.mode === 'households' ? ctx.bills.filter((b) => b.active && !b.auto_add) : [];
 
   const refreshButton = h(
     'button',
@@ -75,6 +78,26 @@ export function homeScreen(ctx: AppContext): HTMLElement {
     { class: 'screen with-tabbar' },
     h('header', { class: 'topbar' }, h('h1', {}, view.summary.group.name), refreshButton),
     balanceCard(view),
+    shortcuts.length
+      ? h(
+          'div',
+          { class: 'bill-chips', role: 'group', 'aria-label': 'Saved bills' },
+          shortcuts.map((bill) =>
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'bill-chip',
+                'data-write': true,
+                onclick: () => {
+                  openExpenseSheet(ctx, ctx.root, undefined, bill);
+                },
+              },
+              bill.name,
+            ),
+          ),
+        )
+      : null,
     view.mode === 'households'
       ? h(
           'div',

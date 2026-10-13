@@ -8,6 +8,7 @@ export function fakeContext(summary: Summary, root: HTMLElement): AppContext {
     root,
     view: new GroupView(summary),
     recent: [],
+    bills: [],
     refresh: () => Promise.resolve(),
     leave: () => undefined,
     switchPerson: () => undefined,

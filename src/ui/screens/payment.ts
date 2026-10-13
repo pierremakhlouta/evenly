@@ -143,6 +143,7 @@ export function openPaymentSheet(ctx: AppContext, root: HTMLElement, existing?: 
   }
 
   function update() {
+    error.clear(); // an old error is stale once the form changes
     const cents = parseAmountToCents(amount.value);
     submit.textContent = settling ? 'Settle up' : existing ? 'Save changes' : 'Record payment';
     if (settling) {

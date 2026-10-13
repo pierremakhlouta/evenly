@@ -4,7 +4,7 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 [![CI](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml/badge.svg)](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml)
 
-> Live for its first two households. Monthly bills and the home-screen app are next.
+> Live for its first two households. Settings, polish and the home-screen app are next.
 > Live: https://pierremakhlouta.github.io/evenly/ (a group code and PIN are needed to join)
 
 ## Two modes, one engine
@@ -19,6 +19,7 @@ Both modes use the same engine: money always moves between _parties_, and househ
 - **Join once per phone** with a group code and PIN, then pick your name and enter your personal PIN, so nobody can add entries as someone else. The first person in a group is its admin and adds everyone else.
 - **Home** shows one balance phrased from your side ("Basement suite owes you $214.50") and everything added since the last settle-up, each entry saying what it did to your balance.
 - **Add expense**: who paid, and the other side's share (1/3, 1/2, all, a $ amount, a fraction or a percentage), with a live "They owe you $35.00" preview.
+- **Monthly bills**: saved bills like Hydro appear as one-tap buttons that pre-fill Add expense, and fixed bills like rent are added automatically every month by a scheduled database job.
 - **Record payment**: partial payments, or **Settle full balance**, which zeroes the balance and starts a new period.
 - **History**: settle-up periods, newest first, each one opening to its entries.
 - **Every entry** can be opened to see its shares and a plain-words change log ("Edited by Sam · Amount: $100.00 → $120.00"), then edited, deleted, or restored from Deleted entries.

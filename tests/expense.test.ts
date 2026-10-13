@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Summary } from '../src/api/types';
 import { fakeContext } from './helpers';
-import { initialShare, openExpenseSheet, readSplit, splitColumns } from '../src/ui/screens/expense';
+import { initialShare, readSplit, splitColumns } from '../src/ui/components/split-picker';
+import { openExpenseSheet } from '../src/ui/screens/expense';
 
 const blank = { amount: '', num: '', den: '', percent: '' };
 

@@ -87,3 +87,17 @@ export function addPayment(group: TestGroup, note: string, totalCents: number): 
     `select public.add_entry('${group.alexToken}', 'payment', '${note}', private.today(), ${String(totalCents)}, '${group.h2}');`,
   );
 }
+
+/** Saves a monthly bill paid by the main floor through the real RPC. */
+export function addBill(
+  group: TestGroup,
+  name: string,
+  splitType: string,
+  defaultCents: number | null = null,
+  auto = false,
+): void {
+  const amount = defaultCents === null ? 'null' : String(defaultCents);
+  sql(
+    `select public.upsert_recurring_bill('${group.alexToken}', null, '${name}', '${group.h1}', '${splitType}', p_default_total_cents => ${amount}, p_auto_add => ${String(auto)});`,
+  );
+}
