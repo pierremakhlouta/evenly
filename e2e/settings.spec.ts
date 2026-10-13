@@ -108,3 +108,18 @@ test('export downloads a CSV of every entry', async ({ page }) => {
   expect(csv).toContain('Date,Description,Type,Total,Paid by');
   expect(csv).toContain('"Hydro, October",Expense,100.01,Main floor,Alex,1/3,66.67,33.34,Alex');
 });
+
+test('the notifications switch explains why it is off when push is not available', async ({
+  page,
+}) => {
+  const group = householdGroup();
+  await settingsAs(page, group.alexToken);
+  const section = page.locator('section', {
+    has: page.getByRole('heading', { name: 'Notifications' }),
+  });
+  await expect(section.getByLabel('Notifications on this phone')).toBeDisabled();
+  // The dev server has no service worker and no push key, so it says so plainly.
+  await expect(section.locator('.field-hint')).toHaveText(
+    /set up|can't show notifications|Home Screen/,
+  );
+});

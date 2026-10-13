@@ -8,9 +8,9 @@ select is(
   (select array_agg(p.proname::text order by p.proname)
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'private') and has_function_privilege('anon', p.oid, 'execute')),
-  array['add_entry', 'add_self', 'archive_person', 'archive_recurring_bill', 'delete_entry', 'edit_entry',
+  array['add_entry', 'add_self', 'archive_person', 'archive_recurring_bill', 'delete_entry', 'delete_push_subscription', 'edit_entry',
         'export_entries', 'get_entry', 'get_summary', 'list_devices', 'list_entries', 'list_periods', 'list_recurring_bills',
-        'ping', 'register_device', 'reset_person_pin', 'restore_entry', 'revoke_device', 'set_device_person', 'set_person_admin', 'settle_up', 'settle_up_all', 'update_group',
+        'ping', 'register_device', 'reset_person_pin', 'restore_entry', 'revoke_device', 'save_push_subscription', 'set_device_person', 'set_person_admin', 'settle_up', 'settle_up_all', 'update_group',
         'upsert_party', 'upsert_person', 'upsert_recurring_bill'],
   'anon can execute exactly the documented RPCs');
 select is(

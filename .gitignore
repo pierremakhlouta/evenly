@@ -25,3 +25,6 @@ e2e/screenshots/
 test-results/
 playwright-report/
 dist-e2e/
+
+# Local Edge Function secrets
+supabase/functions/.env

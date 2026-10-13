@@ -10,6 +10,7 @@ import {
 import type { Device, RecurringBill } from '../../api/types';
 import { formatDateTime, today } from '../../dates';
 import { downloadCsv, toCsv } from '../../export';
+import { pushState, turnOff, turnOn, type PushState } from '../../push';
 import type { Person } from '../../api/types';
 import { APP_NAME, APP_VERSION } from '../../config';
 import type { AppContext } from '../app';
@@ -391,6 +392,7 @@ export function settingsScreen(ctx: AppContext): HTMLElement {
         ),
       ),
     ),
+    notificationsSection(),
     groupSection,
     billsSection,
     h(
@@ -524,5 +526,57 @@ function exportSection(ctx: AppContext): HTMLElement {
       { class: 'field-hint' },
       'Every entry, deleted ones too. Export once a month and keep the file somewhere safe.',
     ),
+  );
+}
+
+const PUSH_TEXT: Record<PushState, string> = {
+  unconfigured: "Notifications aren't set up for this app yet.",
+  'needs-install':
+    'Add Evenly to your Home Screen (Share, then Add to Home Screen), open it from there, then turn notifications on here.',
+  unsupported: "This browser can't show notifications.",
+  blocked:
+    "Notifications are blocked for Evenly. Allow them in your phone's settings, then come back.",
+  off: 'Get a notification when someone adds, edits or deletes an entry.',
+  on: "You'll get a notification when someone else adds, edits or deletes an entry.",
+};
+
+/** Notifications for this phone: one switch, with plain words for every state. */
+function notificationsSection(): HTMLElement {
+  const text = h('p', { class: 'field-hint' }, 'Checking…');
+  const error = errorLine();
+  const toggle = h('input', {
+    type: 'checkbox',
+    class: 'switch',
+    name: 'notifications',
+    disabled: true,
+  });
+
+  const show = (state: PushState) => {
+    text.textContent = PUSH_TEXT[state];
+    toggle.checked = state === 'on';
+    toggle.disabled = state !== 'on' && state !== 'off';
+  };
+
+  toggle.addEventListener('change', () => {
+    error.clear();
+    toggle.disabled = true;
+    (toggle.checked ? turnOn() : turnOff()).then(show).catch((e: unknown) => {
+      error.show(messageOf(e));
+      void pushState().then(show);
+    });
+  });
+  void pushState().then(show);
+
+  return h(
+    'section',
+    { class: 'stack' },
+    h('h2', { class: 'section-title' }, 'Notifications'),
+    h(
+      'div',
+      { class: 'card stack' },
+      h('label', { class: 'switch-row' }, h('span', {}, 'Notifications on this phone'), toggle),
+      text,
+    ),
+    error.el,
   );
 }

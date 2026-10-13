@@ -20,7 +20,8 @@
     "gen:sql-vectors": "node scripts/sql-vectors.ts",
     "e2e": "playwright test",
     "icons": "node scripts/icons.ts",
-    "screenshots": "supabase db reset && SCREENSHOTS=1 playwright test --project readme"
+    "screenshots": "supabase db reset && SCREENSHOTS=1 playwright test --project readme",
+    "setup:push": "node scripts/setup-push.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -31,6 +32,7 @@
     "eslint-config-prettier": "10.1.8",
     "globals": "17.13.0",
     "happy-dom": "21.0.1",
+    "http_ece": "1.2.1",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.2",

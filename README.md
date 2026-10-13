@@ -20,6 +20,7 @@ A small mobile web app for tracking shared money between households: monthly bil
 - **History**: settle-up periods, newest first, each one opening to its entries, plus a Deleted list to restore from.
 - **Every entry** opens to its shares and a plain-words change log ("Edited by Sam · Amount: $120.00 → $126.44"), and can be edited, deleted or restored.
 - **Settings**: rename the group and households; admins manage people (rename, move, make admin, reset a PIN, remove); see and revoke phones; export every entry as CSV.
+- **Notifications**: turn them on per phone in Settings to hear about every new, edited or deleted entry from someone else ("Sam added Hydro · $134.12"). On iPhone this works once Evenly is on the Home Screen.
 - **Installable**: add it to the home screen on iPhone or Android. It opens full screen and starts even offline; data is never cached, so balances are always live.
 - **Accessible**: every screen passes WCAG 2.2 AA checks (axe-core) in light and dark mode, and wording, never color alone, says who owes who.
 
@@ -47,10 +48,14 @@ flowchart LR
     RPC["security definer<br/>RPC functions"]
     DB[("Postgres<br/>RLS on, no policies")]
     Cron["pg_cron<br/>daily auto-add bills"]
+    Net["pg_net trigger<br/>after each change"]
+    Fn["Edge Function: notify<br/>Web Push, no SDK"]
   end
+  PushSvc["Browser push service<br/>Apple, Google, Mozilla"]
   Pages --> UI
   UI -- "POST /rpc/* with device token" --> API --> RPC --> DB
   Cron --> DB
+  DB --> Net --> Fn --> PushSvc -- "encrypted notification" --> SW
   CI -- "deploy if all tests pass" --> Pages
   CI -- "ping() every 3 days" --> API
 ```
@@ -123,6 +128,7 @@ The seed's local-only logins are `HHHH-2222` (household mode) and `PPPP-3333` (p
 - **CI** runs on every push and pull request in three parallel jobs: checks and unit tests; pgTAP against a fresh Postgres; Playwright against a fresh local Supabase stack.
 - **Deploy**: when CI passes on `main`, a second workflow builds that exact commit and deploys it to GitHub Pages. A failing check never reaches the live site.
 - **Database changes** are forward-only SQL migrations in [`supabase/migrations`](supabase/migrations), applied with `supabase db push`.
+- **Notifications** need a one-time setup: `npm run setup:push` (keys into Supabase secrets and a GitHub variable), `supabase functions deploy notify`, and the function URL in Vault.
 - **Keep-alive**: the free Supabase plan pauses idle projects, so a scheduled workflow calls the read-nothing `ping()` RPC every 3 days.
 - **Backups**: the free plan keeps none, so Settings exports every entry as CSV; export once a month.
 

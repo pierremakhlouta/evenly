@@ -16,7 +16,16 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts", "e2e", "vite.config.ts", "playwright.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts",
+    "e2e",
+    "supabase/functions/_shared",
+    "vite.config.ts",
+    "playwright.config.ts"
+  ]
 }

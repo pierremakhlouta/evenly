@@ -33,6 +33,8 @@ const MESSAGES: Record<string, string> = {
   balance_changed: 'The balance just changed. Check the new amount and try again.',
   settlement_locked: "A settle-up can't be edited. Delete it and settle again instead.",
   not_found: 'That item no longer exists.',
+  invalid_subscription:
+    "This phone's notification setup looks wrong. Try turning notifications off and on.",
   network: "Can't reach the server. Check your connection and try again.",
   config: 'The app is missing its server settings.',
 };

@@ -276,3 +276,17 @@ export const upsertPerson = (id: string | null, name: string, partyId: string | 
   withToken<string>('upsert_person', { p_id: id, p_name: name, p_party_id: partyId });
 
 export const exportEntries = () => withToken<Entry[]>('export_entries');
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export const savePushSubscription = (endpoint: string, p256dh: string, auth: string) =>
+  withToken<null>('save_push_subscription', {
+    p_endpoint: endpoint,
+    p_p256dh: p256dh,
+    p_auth: auth,
+  });
+
+export const deletePushSubscription = (endpoint: string) =>
+  withToken<null>('delete_push_subscription', { p_endpoint: endpoint });
