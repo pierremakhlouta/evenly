@@ -101,3 +101,10 @@ export function addBill(
     `select public.upsert_recurring_bill('${group.alexToken}', null, '${name}', '${group.h1}', '${splitType}', p_default_total_cents => ${amount}, p_auto_add => ${String(auto)});`,
   );
 }
+
+/** Registers a second phone for Sam (who gets PIN 8642) and returns its token. */
+export function samPhone(group: TestGroup, label = 'Kitchen iPad'): string {
+  return sql(`
+    select t from (select public.register_device('${group.code}', '${GROUP_PIN}', '${label}') ->> 'token' as t) x,
+    lateral (select public.set_device_person(x.t, '${group.sam}', '8642')) y;`);
+}

@@ -234,6 +234,18 @@ export const updateGroup = (name: string) => withToken<null>('update_group', { p
 export const renameParty = (id: string, name: string) =>
   withToken<null>('upsert_party', { p_id: id, p_name: name });
 
+/** Admin only. Makes a person admin or removes admin (the last admin cannot be removed). */
+export const setPersonAdmin = (personId: string, isAdmin: boolean) =>
+  withToken<null>('set_person_admin', { p_person_id: personId, p_is_admin: isAdmin });
+
+/** Admin only. Clears a person's PIN and signs their phones out of that person. */
+export const resetPersonPin = (personId: string) =>
+  withToken<null>('reset_person_pin', { p_person_id: personId });
+
+/** Admin only. Archives a person: they stay in history but can't be picked again. */
+export const archivePerson = (personId: string) =>
+  withToken<null>('archive_person', { p_id: personId });
+
 /** Admin only. Creates (id null) or updates a person. */
 export const upsertPerson = (id: string | null, name: string, partyId: string | null) =>
   withToken<string>('upsert_person', { p_id: id, p_name: name, p_party_id: partyId });

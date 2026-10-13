@@ -794,3 +794,7 @@ a.list-item:active {
   padding: 10px 0;
   cursor: pointer;
 }
+
+.device-row {
+  padding-right: 4px;
+}
