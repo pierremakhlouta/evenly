@@ -96,6 +96,18 @@ begin
       updated_at = (e.entry_date + time '12:00') at time zone 'America/Toronto'
   where e.group_id = v_group;
 
+  -- The change log too: each entry's events a day apart, starting when it was created.
+  -- The log is append only, so the seed (fake data, local only) lifts that rule for
+  -- this one statement.
+  alter table public.entry_events disable trigger entry_events_append_only;
+  update public.entry_events ev
+  set at = e.created_at + (x.n - 1) * interval '1 day' + interval '5 minutes'
+  from (select id, entry_id, row_number() over (partition by entry_id order by id) as n
+        from public.entry_events where group_id = v_group) x
+  join public.entries e on e.id = x.entry_id
+  where ev.id = x.id;
+  alter table public.entry_events enable trigger entry_events_append_only;
+
   -- -------------------------------------------------------------------------
   -- People mode: Ski Trip (four people, each their own party)
   -- -------------------------------------------------------------------------

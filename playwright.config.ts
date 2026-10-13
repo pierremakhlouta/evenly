@@ -23,8 +23,18 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'iphone', use: { ...devices['iPhone 15'] }, testIgnore: /pwa\.spec/ },
-    { name: 'android', use: { ...devices['Pixel 7'] }, testIgnore: /pwa\.spec/ },
+    { name: 'iphone', use: { ...devices['iPhone 15'] }, testIgnore: /(pwa|readme)\.spec/ },
+    { name: 'android', use: { ...devices['Pixel 7'] }, testIgnore: /(pwa|readme)\.spec/ },
+    // README screenshots from the fake seed data: only with `npm run screenshots`.
+    ...(process.env.SCREENSHOTS
+      ? [
+          {
+            name: 'readme',
+            testMatch: /readme\.spec/,
+            use: { ...devices['iPhone 15'], deviceScaleFactor: 2 },
+          },
+        ]
+      : []),
     {
       name: 'pwa',
       testMatch: /pwa\.spec/,
