@@ -15,19 +15,18 @@ export function openSheet(root: HTMLElement, title: string, body: HTMLElement): 
     dialog.close();
   };
 
-  dialog.append(
+  const panel = h(
+    'div',
+    { class: 'sheet-panel', tabindex: -1 },
     h(
-      'div',
-      { class: 'sheet-panel' },
-      h(
-        'header',
-        { class: 'sheet-header' },
-        h('h2', { id: 'sheet-title' }, title),
-        h('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Cancel'),
-      ),
-      body,
+      'header',
+      { class: 'sheet-header' },
+      h('h2', { id: 'sheet-title' }, title),
+      h('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Cancel'),
     ),
+    body,
   );
+  dialog.append(panel);
 
   // Tapping the dimmed backdrop (the dialog itself, outside the panel) closes it.
   dialog.addEventListener('click', (event) => {
@@ -41,5 +40,8 @@ export function openSheet(root: HTMLElement, title: string, body: HTMLElement): 
   root.append(dialog);
   document.body.classList.add('sheet-open');
   dialog.showModal();
+  // showModal focuses the first button (Cancel), which Safari outlines; start on the
+  // sheet itself instead. Forms that want a field focused do that right after.
+  panel.focus({ preventScroll: true });
   return { close };
 }

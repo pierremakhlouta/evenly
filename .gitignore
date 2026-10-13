@@ -19,3 +19,8 @@ supabase/.temp/
 !.vscode/extensions.json
 .idea/
 *.log
+
+# End-to-end test output
+e2e/screenshots/
+test-results/
+playwright-report/

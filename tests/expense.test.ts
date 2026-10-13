@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Summary } from '../src/api/types';
-import type { AppContext } from '../src/ui/app';
+import { fakeContext } from './helpers';
 import { openExpenseSheet, readSplit, splitColumns } from '../src/ui/screens/expense';
-import { GroupView } from '../src/ui/state';
 
 const blank = { amount: '', num: '', den: '', percent: '' };
 
@@ -118,14 +117,7 @@ describe('Add expense sheet', () => {
     document.body.replaceChildren();
     root = document.createElement('div');
     document.body.append(root);
-    const ctx = {
-      root,
-      view: new GroupView(summary),
-      recent: [],
-      refresh: () => Promise.resolve(),
-      leave: () => undefined,
-      switchPerson: () => undefined,
-    } satisfies AppContext;
+    const ctx = fakeContext(summary, root);
     openExpenseSheet(ctx, root);
   });
 

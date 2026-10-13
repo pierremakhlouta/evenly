@@ -3,3 +3,6 @@ coverage/
 node_modules/
 package-lock.json
 supabase/.temp/
+e2e/screenshots/
+test-results/
+playwright-report/

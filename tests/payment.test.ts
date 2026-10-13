@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Summary } from '../src/api/types';
-import type { AppContext } from '../src/ui/app';
+import { fakeContext } from './helpers';
 import { openPaymentSheet } from '../src/ui/screens/payment';
-import { GroupView } from '../src/ui/state';
 
 function summary(myNet: number): Summary {
   return {
@@ -46,15 +45,7 @@ const open = (myNet: number) => {
   document.body.replaceChildren();
   root = document.createElement('div');
   document.body.append(root);
-  const ctx = {
-    root,
-    view: new GroupView(summary(myNet)),
-    recent: [],
-    refresh: () => Promise.resolve(),
-    leave: () => undefined,
-    switchPerson: () => undefined,
-  } satisfies AppContext;
-  openPaymentSheet(ctx, root);
+  openPaymentSheet(fakeContext(summary(myNet), root), root);
 };
 const button = (label: string) =>
   [...root.querySelectorAll('button')].find((b) => b.textContent === label);

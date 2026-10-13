@@ -15,6 +15,7 @@ import type { Entry, Summary } from '../api/types';
 import { h, replace } from './dom';
 import { messageOf } from './errors';
 import { icon, type IconName } from './icons';
+import { openEntrySheet } from './screens/entry';
 import { historyScreen } from './screens/history';
 import { homeScreen } from './screens/home';
 import { joinScreen } from './screens/join';
@@ -41,6 +42,8 @@ export interface AppContext {
   leave: () => void;
   /** Goes back to "Who are you?" to switch person. */
   switchPerson: () => void;
+  /** Opens an entry's details sheet. */
+  openEntry: (entry: Entry) => void;
 }
 
 interface AppData {
@@ -149,6 +152,9 @@ export function startApp(root: HTMLElement): void {
     leave,
     switchPerson: () => {
       show([whoScreen(current.summary, () => void boot())]);
+    },
+    openEntry: (entry) => {
+      openEntrySheet(context(current), entry);
     },
   });
 

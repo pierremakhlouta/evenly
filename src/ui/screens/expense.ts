@@ -124,7 +124,7 @@ export function openExpenseSheet(ctx: AppContext, root: HTMLElement): void {
   };
 
   const moreInputs = {
-    amount: field('Amount', shareAmount),
+    amount: field('Share in $', shareAmount),
     fraction: h(
       'div',
       { class: 'field' },

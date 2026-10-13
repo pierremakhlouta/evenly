@@ -37,3 +37,17 @@ export function formatMonth(isoDate: string): string {
     year: 'numeric',
   }).format(utcDay(isoDate));
 }
+
+/** 'Oct 12, 3:04 p.m.' in Toronto time, for the change log. */
+export function formatDateTime(iso: string, todayIso: string = today()): string {
+  const d = new Date(iso);
+  const sameYear = today(d).slice(0, 4) === todayIso.slice(0, 4);
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: TIME_ZONE,
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(d);
+}

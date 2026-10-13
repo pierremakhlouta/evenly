@@ -14,7 +14,7 @@ import { h, replace } from '../dom';
 import { messageOf } from '../errors';
 import { icon } from '../icons';
 import type { GroupView } from '../state';
-import { entryRow } from './home';
+import { entryRow } from '../components/entry-row';
 
 const PAGE = 100;
 
@@ -107,13 +107,23 @@ export function historyScreen(ctx: AppContext): HTMLElement {
             { class: 'empty' },
             'Settled months will show up here after your first settle-up.',
           ),
+      h(
+        'section',
+        { class: 'stack' },
+        h(
+          'div',
+          { class: 'list' },
+          card('#/history/deleted', 'Deleted entries', ['Restore anything deleted by mistake']),
+        ),
+      ),
     );
   };
 
   const showPeriod = (
     heading: string,
     sub: string,
-    bounds: { createdAfter: string | null; createdUntil?: string | null },
+    bounds: { createdAfter?: string | null; createdUntil?: string | null; deleted?: boolean },
+    emptyText = 'No entries in this period.',
   ) => {
     title.textContent = heading;
     back.hidden = false;
@@ -123,11 +133,10 @@ export function historyScreen(ctx: AppContext): HTMLElement {
 
     const load = async () => {
       const page = await listEntries({ limit: PAGE, before, ...bounds });
-      list.append(...page.entries.map((e: Entry) => entryRow(view, e)));
+      list.append(...page.entries.map((e: Entry) => entryRow(ctx, e)));
       before = page.next_before;
       more.hidden = before === null;
-      if (!list.childElementCount)
-        list.replaceWith(h('p', { class: 'empty' }, 'No entries in this period.'));
+      if (!list.childElementCount) list.replaceWith(h('p', { class: 'empty' }, emptyText));
     };
     more.addEventListener('click', () => {
       load().catch(showError);
@@ -140,6 +149,15 @@ export function historyScreen(ctx: AppContext): HTMLElement {
   listPeriods()
     .then((periods) => {
       const sel = selection();
+      if (sel === 'deleted') {
+        showPeriod(
+          'Deleted',
+          'Deleted entries leave the balance. Tap one to restore it.',
+          { deleted: true },
+          'Nothing has been deleted.',
+        );
+        return;
+      }
       if (sel === 'open') {
         showPeriod(
           'Open period',

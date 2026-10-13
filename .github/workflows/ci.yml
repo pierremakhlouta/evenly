@@ -35,3 +35,32 @@ jobs:
       # Starts only Postgres, applies every migration and the fake seed.
       - run: supabase db start
       - run: supabase test db
+
+  e2e:
+    name: End-to-end (iPhone and Android emulation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.120.0
+      # Local stack only (Postgres and the API); never production.
+      - run: supabase start
+      - run: npx playwright install --with-deps webkit chromium
+      - name: Run Playwright against the local stack
+        run: |
+          eval "$(supabase status -o env | grep '^PUBLISHABLE_KEY=')"
+          VITE_SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" npm run e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            e2e/screenshots/
+          retention-days: 7
