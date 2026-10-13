@@ -16,9 +16,11 @@ import { h, replace } from './dom';
 import { messageOf } from './errors';
 import { icon, type IconName } from './icons';
 import { openEntrySheet } from './screens/entry';
+import { openExpenseSheet } from './screens/expense';
 import { historyScreen } from './screens/history';
 import { homeScreen } from './screens/home';
 import { joinScreen } from './screens/join';
+import { openPaymentSheet } from './screens/payment';
 import { settingsScreen } from './screens/settings';
 import { whoScreen } from './screens/who';
 import { GroupView } from './state';
@@ -154,7 +156,11 @@ export function startApp(root: HTMLElement): void {
       show([whoScreen(current.summary, () => void boot())]);
     },
     openEntry: (entry) => {
-      openEntrySheet(context(current), entry);
+      const ctx = context(current);
+      openEntrySheet(ctx, entry, (e) => {
+        if (e.kind === 'expense') openExpenseSheet(ctx, root, e);
+        else openPaymentSheet(ctx, root, e);
+      });
     },
   });
 

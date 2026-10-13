@@ -67,14 +67,23 @@ export function householdGroup(): TestGroup {
   return JSON.parse(json.split('\n').pop() ?? '{}') as TestGroup;
 }
 
-/** Adds an entry as Alex through the real RPC. */
+/** Adds an expense paid by Alex through the real RPC. */
 export function addExpense(
   group: TestGroup,
   description: string,
   totalCents: number,
   splitType = 'third',
+  splitNum: number | null = null,
 ): void {
+  const num = splitNum === null ? 'null' : String(splitNum);
   sql(
-    `select public.add_entry('${group.alexToken}', 'expense', '${description}', private.today(), ${String(totalCents)}, '${group.h1}', '${group.alex}', '${splitType}');`,
+    `select public.add_entry('${group.alexToken}', 'expense', '${description}', private.today(), ${String(totalCents)}, '${group.h1}', '${group.alex}', '${splitType}', ${num});`,
+  );
+}
+
+/** Adds a payment from the basement suite to the main floor through the real RPC. */
+export function addPayment(group: TestGroup, note: string, totalCents: number): void {
+  sql(
+    `select public.add_entry('${group.alexToken}', 'payment', '${note}', private.today(), ${String(totalCents)}, '${group.h2}');`,
   );
 }

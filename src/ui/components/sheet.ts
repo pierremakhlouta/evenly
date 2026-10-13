@@ -9,10 +9,18 @@ export interface Sheet {
  * Escape to close and an inert background for free. It is mounted inside the app
  * root so a background refresh sees the open form and waits.
  */
+let sheetIds = 0;
+
 export function openSheet(root: HTMLElement, title: string, body: HTMLElement): Sheet {
-  const dialog = h('dialog', { class: 'sheet', 'aria-labelledby': 'sheet-title' });
+  sheetIds += 1;
+  const titleId = `sheet-title-${String(sheetIds)}`;
+  const dialog = h('dialog', { class: 'sheet', 'aria-labelledby': titleId });
+  // Remove right away (the close event fires later), so a sheet opened next never
+  // shares the page with this one.
   const close = () => {
-    dialog.close();
+    if (dialog.open) dialog.close();
+    dialog.remove();
+    document.body.classList.remove('sheet-open');
   };
 
   const panel = h(
@@ -21,7 +29,7 @@ export function openSheet(root: HTMLElement, title: string, body: HTMLElement): 
     h(
       'header',
       { class: 'sheet-header' },
-      h('h2', { id: 'sheet-title' }, title),
+      h('h2', { id: titleId, class: 'sheet-title' }, title),
       h('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Cancel'),
     ),
     body,
@@ -32,10 +40,8 @@ export function openSheet(root: HTMLElement, title: string, body: HTMLElement): 
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) close();
   });
-  dialog.addEventListener('close', () => {
-    dialog.remove();
-    document.body.classList.remove('sheet-open');
-  });
+  // Escape closes the dialog natively; clean up the same way.
+  dialog.addEventListener('close', close);
 
   root.append(dialog);
   document.body.classList.add('sheet-open');

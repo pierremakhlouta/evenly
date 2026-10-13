@@ -81,7 +81,7 @@ describe('Entry details', () => {
   it('shows the amounts, who paid, the split and each share', () => {
     open(hydro, () => undefined);
     const text = root.textContent;
-    expect(root.querySelector('#sheet-title')?.textContent).toBe('Hydro');
+    expect(root.querySelector('.sheet-title')?.textContent).toBe('Hydro');
     expect(root.querySelector('.detail-total')?.textContent).toBe('$100.01');
     expect(text).toContain("You're owed $33.34");
     expect(text).toContain('Paid byAlex');
@@ -116,7 +116,7 @@ describe('Entry details', () => {
       },
       () => undefined,
     );
-    expect(root.querySelector('#sheet-title')?.textContent).toBe('Settled up: E-transfer');
+    expect(root.querySelector('.sheet-title')?.textContent).toBe('Settled up: E-transfer');
     expect(root.textContent).toContain("A settle-up can't be edited.");
     expect(buttons()).toEqual(['Cancel', 'Delete']);
   });

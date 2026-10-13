@@ -8,11 +8,11 @@
  * The preview uses the same split math as the database (src/money/split.ts).
  */
 import { messageFor } from '../../api/errors';
-import { addEntry } from '../../api/rpc';
-import type { EntryInput, HouseholdSplitType } from '../../api/types';
+import { addEntry, editEntry } from '../../api/rpc';
+import type { Entry, EntryInput, HouseholdSplitType } from '../../api/types';
 import { today } from '../../dates';
 import { SplitError, splitHousehold, type HouseholdSplit } from '../../money/split';
-import { formatCents, parseAmountToCents } from '../../money/format';
+import { centsToInput, formatCents, parseAmountToCents } from '../../money/format';
 import type { AppContext } from '../app';
 import { busy, errorLine, field, fieldGroup, segmented } from '../components/forms';
 import { openSheet } from '../components/sheet';
@@ -80,15 +80,53 @@ export function splitColumns(
   }
 }
 
-export function openExpenseSheet(ctx: AppContext, root: HTMLElement): void {
+/** The share chips and custom inputs that reproduce an existing entry's split. */
+export function initialShare(entry: Pick<Entry, 'split_type' | 'split_num' | 'split_den'>): {
+  chip: Chip;
+  more: MoreKind;
+  amount: string;
+  num: string;
+  den: string;
+  percent: string;
+} {
+  const blank = { more: 'amount' as MoreKind, amount: '', num: '', den: '', percent: '' };
+  switch (entry.split_type) {
+    case 'half':
+    case 'all':
+      return { ...blank, chip: entry.split_type };
+    case 'amount':
+      return { ...blank, chip: 'more', amount: centsToInput(entry.split_num ?? 0) };
+    case 'fraction':
+      return {
+        ...blank,
+        chip: 'more',
+        more: 'fraction',
+        num: String(entry.split_num),
+        den: String(entry.split_den),
+      };
+    case 'percent':
+      return {
+        ...blank,
+        chip: 'more',
+        more: 'percent',
+        percent: centsToInput(entry.split_num ?? 0).replace(/\.?0+$/, ''),
+      };
+    default:
+      return { ...blank, chip: 'third' };
+  }
+}
+
+/** Opens the Add expense sheet, or the Edit expense sheet when `existing` is given. */
+export function openExpenseSheet(ctx: AppContext, root: HTMLElement, existing?: Entry): void {
   const { view } = ctx;
   const myParty = view.myPartyId ?? '';
   const otherParty = view.otherPartyId ?? '';
   const otherName = view.partyName(otherParty);
+  const initial = existing ? initialShare(existing) : null;
 
-  let payer = myParty;
-  let chip: Chip = 'third';
-  let more: MoreKind = 'amount';
+  let payer = existing?.paid_by_party_id ?? myParty;
+  let chip: Chip = initial?.chip ?? 'third';
+  let more: MoreKind = initial?.more ?? 'amount';
 
   const description = h('input', {
     class: 'input',
@@ -96,31 +134,49 @@ export function openExpenseSheet(ctx: AppContext, root: HTMLElement): void {
     autocomplete: 'off',
     maxlength: 200,
     placeholder: 'e.g. Hydro, Dinner',
+    value: existing?.description,
   });
   const amount = amountInput('amount');
-  const date = h('input', { class: 'input', name: 'date', type: 'date', value: today() });
+  if (existing) amount.value = centsToInput(existing.total_cents);
+  const date = h('input', {
+    class: 'input',
+    name: 'date',
+    type: 'date',
+    value: existing?.entry_date ?? today(),
+  });
   const person = h('select', { class: 'input', name: 'person', 'aria-label': 'Who paid (person)' });
 
   const shareAmount = amountInput('share-amount');
   const fracNum = wholeInput('fraction-num', '1');
   const fracDen = wholeInput('fraction-den', '3');
   const percent = amountInput('percent', '40');
+  if (initial) {
+    shareAmount.value = initial.amount;
+    fracNum.value = initial.num;
+    fracDen.value = initial.den;
+    percent.value = initial.percent;
+  }
   const shareLabel = h('span', { class: 'field-label' });
   const preview = h('p', { class: 'preview', 'aria-live': 'polite' });
   const error = errorLine();
   const submit = h(
     'button',
     { class: 'btn btn-primary btn-block', type: 'submit', 'data-write': true },
-    'Add expense',
+    existing ? 'Save changes' : 'Add expense',
   );
 
-  const fillPeople = () => {
+  /** People of the paying household. `keep` keeps an existing entry's payer, even if archived or moved. */
+  const fillPeople = (keep?: string | null) => {
     const people = view.peopleOf(payer);
+    const extra =
+      keep && !people.some((p) => p.id === keep)
+        ? [view.person(keep)].filter((p) => p !== undefined)
+        : [];
     person.replaceChildren(
       h('option', { value: '' }, 'Not specified'),
-      ...people.map((p) => h('option', { value: p.id }, p.name)),
+      ...[...people, ...extra].map((p) => h('option', { value: p.id }, p.name)),
     );
-    person.value = payer === myParty ? (view.me?.id ?? '') : '';
+    person.value = keep !== undefined ? (keep ?? '') : payer === myParty ? (view.me?.id ?? '') : '';
   };
 
   const moreInputs = {
@@ -225,14 +281,16 @@ export function openExpenseSheet(ctx: AppContext, root: HTMLElement): void {
         }
         void busy(submit, 'Saving…', async () => {
           try {
-            await addEntry('expense', {
+            const input: EntryInput = {
               description: description.value.trim(),
               entry_date: date.value,
               total_cents: total,
               paid_by_party_id: payer,
               paid_by_person_id: person.value || null,
               ...splitColumns(split),
-            });
+            };
+            if (existing) await editEntry(existing.id, input);
+            else await addEntry('expense', input);
             sheet.close();
             await ctx.refresh();
           } catch (e) {
@@ -288,8 +346,8 @@ export function openExpenseSheet(ctx: AppContext, root: HTMLElement): void {
     submit,
   );
 
-  fillPeople();
+  fillPeople(existing ? existing.paid_by_person_id : undefined);
   update();
-  const sheet = openSheet(root, 'Add expense', form);
-  description.focus();
+  const sheet = openSheet(root, existing ? 'Edit expense' : 'Add expense', form);
+  if (!existing) description.focus();
 }

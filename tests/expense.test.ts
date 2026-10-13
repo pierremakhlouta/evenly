@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Summary } from '../src/api/types';
 import { fakeContext } from './helpers';
-import { openExpenseSheet, readSplit, splitColumns } from '../src/ui/screens/expense';
+import { initialShare, openExpenseSheet, readSplit, splitColumns } from '../src/ui/screens/expense';
 
 const blank = { amount: '', num: '', den: '', percent: '' };
 
@@ -159,5 +159,37 @@ describe('Add expense sheet', () => {
       'Sam',
     ]);
     expect(select?.value).toBe('');
+  });
+});
+
+describe('initialShare', () => {
+  it.each([
+    [{ split_type: 'third', split_num: null, split_den: null }, { chip: 'third' }],
+    [{ split_type: 'half', split_num: null, split_den: null }, { chip: 'half' }],
+    [{ split_type: 'all', split_num: null, split_den: null }, { chip: 'all' }],
+    [
+      { split_type: 'amount', split_num: 3500, split_den: null },
+      { chip: 'more', more: 'amount', amount: '35.00' },
+    ],
+    [
+      { split_type: 'fraction', split_num: 2, split_den: 5 },
+      { chip: 'more', more: 'fraction', num: '2', den: '5' },
+    ],
+    [
+      { split_type: 'percent', split_num: 4000, split_den: null },
+      { chip: 'more', more: 'percent', percent: '40' },
+    ],
+    [
+      { split_type: 'percent', split_num: 3333, split_den: null },
+      { chip: 'more', more: 'percent', percent: '33.33' },
+    ],
+  ] as const)('%j', (entry, expected) => {
+    expect(initialShare(entry)).toMatchObject(expected);
+  });
+
+  it('round-trips through readSplit', () => {
+    const entry = { split_type: 'percent', split_num: 1250, split_den: null } as const;
+    const s = initialShare(entry);
+    expect(readSplit(s.chip, s.more, s)).toEqual({ type: 'percent', basisPoints: 1250 });
   });
 });

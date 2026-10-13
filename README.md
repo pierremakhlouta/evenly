@@ -4,7 +4,7 @@ A small mobile web app for tracking shared money between households: monthly bil
 
 [![CI](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml/badge.svg)](https://github.com/pierremakhlouta/evenly/actions/workflows/ci.yml)
 
-> In use by its first two households. Editing, monthly bills and the home-screen app are next.
+> Live for its first two households. Monthly bills and the home-screen app are next.
 > Live: https://pierremakhlouta.github.io/evenly/ (a group code and PIN are needed to join)
 
 ## Two modes, one engine
@@ -21,6 +21,7 @@ Both modes use the same engine: money always moves between _parties_, and househ
 - **Add expense**: who paid, and the other side's share (1/3, 1/2, all, a $ amount, a fraction or a percentage), with a live "They owe you $35.00" preview.
 - **Record payment**: partial payments, or **Settle full balance**, which zeroes the balance and starts a new period.
 - **History**: settle-up periods, newest first, each one opening to its entries.
+- **Every entry** can be opened to see its shares and a plain-words change log ("Edited by Sam · Amount: $100.00 → $120.00"), then edited, deleted, or restored from Deleted entries.
 - Phones stay in sync by refreshing on focus, every 30 seconds and after every change. There's an offline banner, and light and dark themes follow the phone.
 
 ## Tech stack
@@ -28,7 +29,7 @@ Both modes use the same engine: money always moves between _parties_, and househ
 - TypeScript + Vite, no UI framework (the whole app is about 10 KB gzipped)
 - Supabase (Postgres) with all access through RPC functions, called with a small typed `fetch` client
 - GitHub Pages, deployed by GitHub Actions
-- Vitest for the money math, pgTAP for the database
+- Vitest for the money math and UI logic, pgTAP for the database, Playwright end-to-end tests on emulated iPhone Safari and Android Chrome
 
 ## Money rules
 
@@ -75,6 +76,7 @@ npm install
 npm run dev          # http://localhost:5173/evenly/
 npm run dev -- --host  # also reachable from a phone on the same network
 npm run check        # typecheck, lint, format check, tests, build
+npm run e2e          # end-to-end tests (needs the local database below running)
 ```
 
 The database runs locally with the Supabase CLI and Docker:
@@ -89,6 +91,6 @@ The seed's local-only logins are `HHHH-2222` (household mode) and `PPPP-3333` (p
 
 ## Deploys
 
-Every push and pull request runs CI: typecheck, lint, format check, unit tests and build in one job, and the pgTAP database tests against a fresh Postgres in another. When CI passes on `main`, a second workflow builds that exact commit and deploys it to GitHub Pages. A failing check never reaches the live site.
+Every push and pull request runs CI in three parallel jobs: typecheck, lint, format check, unit tests and build; the pgTAP database tests against a fresh Postgres; and the Playwright end-to-end tests against a fresh local Supabase stack on emulated iPhone and Android. When CI passes on `main`, a second workflow builds that exact commit and deploys it to GitHub Pages. A failing check never reaches the live site.
 
 See [DECISIONS.md](DECISIONS.md) for the reasoning behind the design.

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addExpense, emptyGroup, GROUP_PIN, householdGroup, PERSONAL_PIN } from './db';
+import { addExpense, addPayment, emptyGroup, GROUP_PIN, householdGroup, PERSONAL_PIN } from './db';
 
 /** Saves a screenshot to e2e/screenshots for review. */
 async function shot(page: Page, name: string): Promise<void> {
@@ -189,4 +189,63 @@ test.describe('dark mode', () => {
     await page.getByRole('button', { name: 'Add expense' }).click();
     await shot(page, '09-dark-sheet');
   });
+});
+
+test('edit an expense: the form is pre-filled and the change log shows the difference', async ({
+  page,
+}) => {
+  const group = householdGroup();
+  addExpense(group, 'Hydro', 9000);
+  await asPhone(page, group.alexToken);
+  await expect(page.locator('.balance-amount')).toHaveText('$30.00');
+
+  await page.locator('.entry-row', { hasText: 'Hydro' }).click();
+  await sheet(page).getByRole('button', { name: 'Edit' }).click();
+  await expect(sheet(page).locator('.sheet-title')).toHaveText('Edit expense');
+  await expect(page.getByLabel('Description')).toHaveValue('Hydro');
+  await expect(page.getByLabel('Amount', { exact: true })).toHaveValue('90.00');
+  await expect(page.getByRole('radio', { name: '1/3' })).toHaveAttribute('aria-checked', 'true');
+
+  await page.getByLabel('Amount', { exact: true }).fill('120');
+  await page.getByRole('radio', { name: '1/2' }).click();
+  await expect(sheet(page).locator('.preview')).toHaveText('Basement suite owes you $60.00');
+  await shot(page, '10-edit');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(page.locator('.balance-amount')).toHaveText('$60.00');
+  await page.locator('.entry-row', { hasText: 'Hydro' }).click();
+  await expect(sheet(page).getByText('Amount: $90.00 → $120.00')).toBeVisible();
+  await expect(sheet(page).getByText('Split: 1/3 → 1/2')).toBeVisible();
+  await shot(page, '11-change-log');
+});
+
+test('edit keeps a custom $ share pre-filled', async ({ page }) => {
+  const group = householdGroup();
+  addExpense(group, 'Dinner', 9000, 'amount', 3500);
+  await asPhone(page, group.alexToken);
+  await page.locator('.entry-row', { hasText: 'Dinner' }).click();
+  await sheet(page).getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('radio', { name: 'More' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('[name="share-amount"]')).toHaveValue('35.00');
+  await expect(sheet(page).locator('.preview')).toHaveText('Basement suite owes you $35.00');
+});
+
+test('edit a payment', async ({ page }) => {
+  const group = householdGroup();
+  addExpense(group, 'Rent', 30000);
+  addPayment(group, 'E-transfer', 5000);
+  await asPhone(page, group.alexToken);
+  await expect(page.locator('.balance-amount')).toHaveText('$50.00');
+
+  await page.locator('.entry-row', { hasText: 'E-transfer' }).click();
+  await sheet(page).getByRole('button', { name: 'Edit' }).click();
+  await expect(sheet(page).locator('.sheet-title')).toHaveText('Edit payment');
+  await expect(sheet(page).locator('.settle-card')).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: 'Basement suite paid' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await page.getByLabel('Amount', { exact: true }).fill('80');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.locator('.balance-amount')).toHaveText('$20.00');
 });
