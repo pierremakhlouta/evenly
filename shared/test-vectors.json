@@ -716,5 +716,87 @@
       ],
       "expected": { "a": 350, "b": 750, "c": -1250, "d": 150 }
     }
+  ],
+  "simplify": [
+    {
+      "name": "everyone settled needs no payments",
+      "nets": [
+        { "id": "a", "net_cents": 0 },
+        { "id": "b", "net_cents": 0 },
+        { "id": "c", "net_cents": 0 }
+      ],
+      "expected": []
+    },
+    {
+      "name": "two parties settle with one payment",
+      "nets": [
+        { "id": "h1", "net_cents": -4000 },
+        { "id": "h2", "net_cents": 4000 }
+      ],
+      "expected": [{ "from": "h1", "to": "h2", "cents": 4000 }]
+    },
+    {
+      "name": "one debtor pays every creditor, largest first",
+      "nets": [
+        { "id": "a", "net_cents": 350 },
+        { "id": "b", "net_cents": 750 },
+        { "id": "c", "net_cents": -1250 },
+        { "id": "d", "net_cents": 150 }
+      ],
+      "expected": [
+        { "from": "c", "to": "b", "cents": 750 },
+        { "from": "c", "to": "a", "cents": 350 },
+        { "from": "c", "to": "d", "cents": 150 }
+      ]
+    },
+    {
+      "name": "largest creditor meets largest debtor each step",
+      "nets": [
+        { "id": "a", "net_cents": 500 },
+        { "id": "b", "net_cents": 300 },
+        { "id": "c", "net_cents": -600 },
+        { "id": "d", "net_cents": -200 }
+      ],
+      "expected": [
+        { "from": "c", "to": "a", "cents": 500 },
+        { "from": "d", "to": "b", "cents": 200 },
+        { "from": "c", "to": "b", "cents": 100 }
+      ]
+    },
+    {
+      "name": "tied creditors go in list order",
+      "nets": [
+        { "id": "a", "net_cents": 100 },
+        { "id": "b", "net_cents": 100 },
+        { "id": "c", "net_cents": -200 }
+      ],
+      "expected": [
+        { "from": "c", "to": "a", "cents": 100 },
+        { "from": "c", "to": "b", "cents": 100 }
+      ]
+    },
+    {
+      "name": "tied debtors and creditors go in list order",
+      "nets": [
+        { "id": "a", "net_cents": -1000 },
+        { "id": "b", "net_cents": -1000 },
+        { "id": "c", "net_cents": 500 },
+        { "id": "d", "net_cents": 1500 },
+        { "id": "e", "net_cents": 0 }
+      ],
+      "expected": [
+        { "from": "a", "to": "d", "cents": 1000 },
+        { "from": "b", "to": "c", "cents": 500 },
+        { "from": "b", "to": "d", "cents": 500 }
+      ]
+    },
+    {
+      "name": "a single cent",
+      "nets": [
+        { "id": "a", "net_cents": 1 },
+        { "id": "b", "net_cents": -1 }
+      ],
+      "expected": [{ "from": "b", "to": "a", "cents": 1 }]
+    }
   ]
 }

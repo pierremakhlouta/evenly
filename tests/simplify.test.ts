@@ -1,3 +1,4 @@
+import vectors from '../shared/test-vectors.json';
 import { describe, expect, it } from 'vitest';
 import type { PartyNet } from '../src/money/balance';
 import { simplifyDebts, type Payment } from '../src/money/simplify';
@@ -72,5 +73,14 @@ describe('simplifyDebts', () => {
       for (const p of payments) expect(p.cents).toBeGreaterThan(0);
       expect(applyPayments(start, payments).every((v) => v === 0)).toBe(true);
     }
+  });
+});
+
+describe('simplifyDebts (shared vectors)', () => {
+  it.each(vectors.simplify)('$name', (v) => {
+    const payments = simplifyDebts(v.nets.map((n) => ({ partyId: n.id, netCents: n.net_cents })));
+    expect(payments.map((p) => ({ from: p.fromPartyId, to: p.toPartyId, cents: p.cents }))).toEqual(
+      v.expected,
+    );
   });
 });

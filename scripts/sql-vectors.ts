@@ -1,6 +1,6 @@
 /**
  * Generates supabase/tests/shared_vectors.test.sql from shared/test-vectors.json,
- * so pgTAP checks the SQL split and balance functions against exactly the same cases as Vitest.
+ * so pgTAP checks the SQL split, balance and simplify functions against exactly the same cases as Vitest.
  *
  * pgTAP runs inside the database container and cannot read files outside
  * supabase/tests, so the vectors are embedded in the generated file.
@@ -18,6 +18,7 @@ interface Vectors {
   people: unknown[];
   people_invalid: unknown[];
   balance: unknown[];
+  simplify: unknown[];
 }
 
 /** Static checks after the vectors: shares add up for every total from 1 cent to $20. */
@@ -31,6 +32,7 @@ export function renderSqlVectorTests(json: string): string {
     vectors.people.length +
     vectors.people_invalid.length +
     vectors.balance.length +
+    vectors.simplify.length +
     INVARIANT_TESTS;
   const compact = JSON.stringify(vectors);
   if (compact.includes('$vectors$')) throw new Error('Vectors cannot contain $vectors$');
@@ -110,6 +112,15 @@ select is(
   t -> 'expected',
   'balance: ' || (t ->> 'name'))
 from balance_vectors
+order by n;
+
+-- Debt simplification: the same payments, in the same order, as simplify.ts.
+select is(
+  (select coalesce(jsonb_agg(jsonb_build_object('from', s.from_id, 'to', s.to_id, 'cents', s.cents) order by s.n), '[]'::jsonb)
+     from private.simplify_nets(t -> 'nets') s),
+  t -> 'expected',
+  'simplify: ' || (t ->> 'name'))
+from vectors, jsonb_array_elements(v -> 'simplify') with ordinality as x(t, n)
 order by n;
 
 -- Invariants: shares always add up to the total and are never negative.
